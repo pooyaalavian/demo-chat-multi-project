@@ -1,0 +1,22 @@
+# flask
+# waitress
+python-dotenv
+openai
+tiktoken
+
+pypdf
+
+quart
+quart-schema
+quart-cors
+
+aiohttp
+azure-cosmos
+azure-storage-blob
+azure-cosmosdb-table
+azure-ai-formrecognizer
+azure-search-documents==11.6.0b1
+
+# azure-appconfiguration
+# fsspec
+# faiss-cpu
