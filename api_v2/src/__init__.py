@@ -1,7 +1,4 @@
-from dataclasses import dataclass
-from typing import Optional
-from quart import Quart, jsonify, Response, request
-
+from quart import Quart, request, send_from_directory, render_template
 # from quart_schema import QuartSchema, validate_request, validate_response
 from quart_cors import cors
 from src.cosmos_utils import usersCosmosClient
@@ -11,17 +8,15 @@ app = Quart(__name__)
 # app = cors(app, allow_origin=["*","http://localhost:5173"], allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 
-@dataclass
-class IWelcomeResponse:
-    message: str
-    error: Optional[str] = None
-
 
 @app.route("/")
-# @validate_response(IWelcomeResponse, 200)
 async def welcome():
-    print("welcome")
-    return {"message": "Welcome to our quart app!"}
+    return await render_template('index.html')
+
+@app.route('/assets/<path:path>')
+async def static(path):
+    return await send_from_directory('static/assets', path)
+
 
 
 @app.before_request
