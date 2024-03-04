@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
 import './App.css';
 import { TopicHome } from './pages/topics/Topic';
 import { SingleTopic } from './pages/topics/SingleTopic';
@@ -9,6 +9,9 @@ import { NewTopic } from './pages/topics/NewTopic';
 import { NewThread } from './pages/threads/NewThread';
 import { NewFile } from './pages/files/NewFile';
 import { NewUser } from './pages/users/NewUser';
+import { MsalProvider } from '@azure/msal-react';
+import { PublicClientApplication } from '@azure/msal-browser';
+import { Header } from './Header';
 
 function HomePage() {
 
@@ -20,15 +23,13 @@ function HomePage() {
   return null;
 }
 
-function App() {
+function App({ instance }: { instance: PublicClientApplication }) {
   return (
-    <>
+    <MsalProvider instance={instance}>
       <Router>
         <div className="flex flex-col h-full min-h-screen">
           <div id="header" className="flex-0 bg-blue-100">
-            <div className="h1 text-2xl p-2">
-              <Link to="/">Pooya's Demo Chat</Link>
-            </div>
+            <Header />
           </div>
           <div id="content" className="flex-auto h-full p-2 flex flex-col">
             <Routes>
@@ -46,7 +47,7 @@ function App() {
           <div id="footer" className="flex-0 h-4 bg-gray-500 text-white overflow-hidden">footer</div>
         </div>
       </Router>
-    </>
+    </MsalProvider>
   )
 }
 

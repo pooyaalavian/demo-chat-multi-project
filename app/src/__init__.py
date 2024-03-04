@@ -2,16 +2,17 @@ from quart import Quart, request, send_from_directory, render_template, send_fil
 # from quart_schema import QuartSchema, validate_request, validate_response
 from quart_cors import cors
 from src.cosmos_utils import usersCosmosClient
+import os 
 
 app = Quart(__name__, static_folder="../static", template_folder="../static")
 # QuartSchema(app)
 # app = cors(app, allow_origin=["*","http://localhost:5173"], allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-
+APP_TITLE = os.getenv('APP_TITLE', "My App")
 
 
 @app.route("/")
 async def render_index():
-    return await render_template('index.html', title="Pooya's App", favicon="/vite.svg")
+    return await render_template('index.html', title=APP_TITLE, favicon="/vite.svg")
 
 @app.route("/favicon.ico")
 async def render_favicon():
@@ -22,16 +23,19 @@ async def send_static_folder(path):
     return await send_from_directory('static/assets', path)
 
 
-
+from src.extract_user import extractUser
 @app.before_request
-async def extract_user():
+async def append_user_info():
+    request.authenticated = False
     request.userId = None
     request.user = None
     try:
-        authn = request.headers["Authorization"]
-        token = authn.split("Bearer ")[1]
-        request.userId = token
-        request.user = await usersCosmosClient.get_by_id(token, token)
+        token = request.headers.get("Authorization").split(" ")[1]
+        user = await extractUser(token)
+        if user:
+            request.authenticated = True
+            request.userId = user["userId"]
+            request.user = await usersCosmosClient.upsert(user)            
     except:
         pass
 
@@ -48,7 +52,7 @@ app.register_blueprint(users, url_prefix="/api/users")
 
 @app.route('/<path:path>')
 async def catch_all(path):
-    return await render_template('index.html', title="Pooya's App", favicon="/vite.svg")
+    return await render_template('index.html', title=APP_TITLE, favicon="/vite.svg")
 
 app = cors(app, allow_origin="*")
 

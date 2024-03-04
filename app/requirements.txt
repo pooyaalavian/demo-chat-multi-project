@@ -10,6 +10,7 @@ quart
 quart-schema
 quart-cors
 uvicorn
+pyjwt
 
 aiohttp
 azure-cosmos

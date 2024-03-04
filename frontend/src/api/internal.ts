@@ -2,8 +2,11 @@ import { environment } from "../environment";
 import { File } from "../types/file";
 import { Thread } from "../types/thread";
 import { Topic } from "../types/topic";
+import { acquireTokens } from "./msal";
 
 export const wrappedFetch = async <T>(url: string, options: RequestInit) => {
+    const token = await acquireTokens();
+    console.log({ token });
     const response = await fetch(
         environment.api + url,
         {
@@ -11,7 +14,7 @@ export const wrappedFetch = async <T>(url: string, options: RequestInit) => {
             headers: {
                 'Content-Type': 'application/json',
                 ...options.headers,
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Authorization': `Bearer ${token.idToken}`,
             },
         });
     if (!response.ok) {
