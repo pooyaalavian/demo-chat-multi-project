@@ -1,5 +1,5 @@
 import { BaseSyntheticEvent } from "react";
-import { createTopic, createUser } from "../../api/internal";
+import { createUser } from "../../api/internal";
 
 
 

@@ -1,10 +1,10 @@
-import { useParams, Link } from 'react-router-dom';
-import { useEffect, useState } from "react";
+import { useParams, } from 'react-router-dom';
+import { useEffect, } from "react";
 import { BackToTopic } from '../topics/BackToTopic';
 
 
 export const SingleFile = () => {
-    let { topicId, fileId } = useParams();
+    const { topicId, fileId } = useParams();
 
     useEffect(() => {
     }, []);

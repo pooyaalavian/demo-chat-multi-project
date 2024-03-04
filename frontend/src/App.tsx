@@ -12,7 +12,7 @@ import { NewUser } from './pages/users/NewUser';
 
 function HomePage() {
 
-  let navigate = useNavigate();
+  const navigate = useNavigate();
   useEffect(() => {
     navigate('/topics');
   }, [navigate]);

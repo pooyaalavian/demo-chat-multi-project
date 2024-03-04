@@ -1,9 +1,9 @@
-declare global {
-    interface ImportMeta {
-        env: Record<string, unknown>;
-    }
-}
-const MODE = import.meta.env.VITE_MODE as ('development' | 'production');
+// declare global {
+//     interface ImportMeta {
+//         env: Record<string, unknown>;
+//     }
+// }
+const MODE = (import.meta as any).env.VITE_MODE as ('development' | 'production');
 
 interface Environment {
     production: boolean;

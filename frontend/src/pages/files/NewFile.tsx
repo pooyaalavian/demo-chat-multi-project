@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { BaseSyntheticEvent, useEffect, useState } from "react";
+import { BaseSyntheticEvent, } from "react";
 import { BackToTopic } from '../topics/BackToTopic';
 import { createFile, } from '../../api/internal';
 
 
 export const NewFile = () => {
-    let { topicId } = useParams();
+    const { topicId } = useParams();
     const navigate = useNavigate();
 
     const handleSubmit = async (event: BaseSyntheticEvent) => {

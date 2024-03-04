@@ -1,39 +1,20 @@
 import { useState } from "react";
+import { AiAssistantMessage, AnyMessage, HumanMessage, SearchUserMessage } from "../../types/thread";
 
 
-interface UserMessage {
-    role: 'user';
-    agent: 'human';
-    userId: string;
-    name: string;
-    content: string;
-}
-interface SearchMessage {
-    role: 'user';
-    agent: 'search-assistant';
-    input: string;
-    search_type: string;
-    results: any[];
-}
-interface AssistantMessage {
-    role: 'assistant';
-    content: string;
-    metadata: any;
+interface ChatMessageProps<T> {
+    message: T;
 }
 
-interface ChatMessageProps {
-    message: UserMessage | SearchMessage | AssistantMessage;
-}
-
-export const ChatMessage = ({ message }: ChatMessageProps) => {
+export const ChatMessage = ({ message }: ChatMessageProps<AnyMessage>) => {
     return <div className="mx-1 my-2">
-        {message.role === 'user' && message.agent === 'human' && <HumanMessage message={message} />}
+        {message.role === 'user' && message.agent === 'human' && <UserMessage message={message} />}
         {message.role === 'user' && message.agent === 'search-assistant' && <SearchMessage message={message} />}
         {message.role === 'assistant' && <AssistantMessage message={message} />}
     </div>;
 }
 
-export const HumanMessage = ({ message }: { message: UserMessage }) => {
+export const UserMessage = ({ message }: ChatMessageProps<HumanMessage>) => {
     return <div className="flex">
         <div className="flex-gorw-0 flex-shrink-0 w-16">&nbsp;</div>
         <div className="flex-1 bg-gray-100 rounded-lg p-3">
@@ -46,7 +27,7 @@ export const HumanMessage = ({ message }: { message: UserMessage }) => {
     </div>;
 };
 
-export const SearchMessage = ({ message }: { message: SearchMessage }) => {
+export const SearchMessage = ({ message }: ChatMessageProps<SearchUserMessage>) => {
     const [expanded, setExpanded] = useState(false);
 
     const toggleExpanded = () => {
@@ -82,7 +63,7 @@ export const SearchMessage = ({ message }: { message: SearchMessage }) => {
     </div>;
 };
 
-export const AssistantMessage = ({ message }: { message: AssistantMessage }) => {
+export const AssistantMessage = ({ message }: ChatMessageProps<AiAssistantMessage>) => {
     return <div className="flex">
         <div className="flex-gorw-0 flex-shrink-0 w-4">&nbsp;</div>
         <div className="flex-1 bg-blue-200 rounded-lg p-3">

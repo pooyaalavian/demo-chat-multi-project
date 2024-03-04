@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchTopics } from "../../api/internal";
+import { Topic } from "../../types/topic";
 
-export const TopicItem = ({ topic, index }: any) => {
+interface TopicItemProps {
+    topic: Topic;
+    index: number;
+}
+
+export const TopicItem = ({ topic, index }: TopicItemProps) => {
     return <div key={index} className="my-1">
         <Link to={`/topics/${topic.id}`}>
             <div className="p-1 border border-gray-700 bg-blue-100 flex items-center">
@@ -16,10 +22,10 @@ export const TopicItem = ({ topic, index }: any) => {
 }
 
 export const TopicHome = () => {
-    const [topics, setTopics] = useState<any[]>([]);
+    const [topics, setTopics] = useState<Topic[]>([]);
 
     useEffect(() => {
-        fetchTopics().then((data: any) => setTopics(data));
+        fetchTopics().then((data) => setTopics(data));
     }, []);
 
     return <>
@@ -33,6 +39,6 @@ export const TopicHome = () => {
             </Link>
 
         </div>
-        {topics.map((topic: any, id) => <TopicItem topic={topic} index={id} />)}
+        {topics.map((topic, id) => <TopicItem topic={topic} index={id} />)}
     </>
 };

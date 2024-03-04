@@ -2,16 +2,19 @@ import { useParams } from 'react-router-dom';
 import { BaseSyntheticEvent, useEffect, useState } from "react";
 import { BackToTopic } from '../topics/BackToTopic';
 import { fetchThread, sendThreadChat } from '../../api/internal';
-import {ChatMessage} from './chat-message';
+import { ChatMessage } from './chat-message';
+import { Thread } from '../../types/thread';
 
 export const SingleThread = () => {
-    let { topicId, threadId } = useParams();
-    const [thread, setThread] = useState<any>({});
+    const { topicId, threadId } = useParams();
+    const [thread, setThread] = useState<Thread | null>(null);
     const [thinking, setThinking] = useState(false);
+    
     useEffect(() => {
         if (topicId && threadId)
-            fetchThread(topicId, threadId).then((data: any) => setThread(data));
-    }, []);
+            fetchThread(topicId, threadId).then((data) => setThread(data));
+    }, [topicId, threadId]);
+
     const sendChat = async (event: BaseSyntheticEvent) => {
         event.preventDefault();
         console.log(event);
@@ -21,11 +24,13 @@ export const SingleThread = () => {
         const message = event.target.querySelector('#message').value;
         setThinking(true);
         const res = await sendThreadChat(topicId, threadId, message);
-        console.log(res);
         setThread(res);
-        event.target.querySelector('#message').value = '';
         setThinking(false);
+        event.target.querySelector('#message').value = '';
     };
+
+    if (!thread) return (<div>Loading...</div>);
+
     return <>
         <BackToTopic topicId={topicId} />
         <div className="flex flex-col h-full flex-auto">
@@ -34,7 +39,7 @@ export const SingleThread = () => {
             </div>
             <div className="flex-auto h-full">
 
-                {thread.messages && thread.messages.map((m: any, id: number) => <ChatMessage key={id} message={m} />  )}
+                {thread.messages && thread.messages.map((m, id) => <ChatMessage key={id} message={m} />)}
                 {thinking && <div>Thinking...</div>}
             </div>
             <div className="flex-0">

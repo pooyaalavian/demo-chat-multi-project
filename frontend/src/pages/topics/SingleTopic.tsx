@@ -1,15 +1,19 @@
 import { useParams, Link } from 'react-router-dom';
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { deleteThread, fetchFiles, fetchThreads, fetchTopic } from '../../api/internal';
+import { File } from '../../types/file';
+import { Thread } from '../../types/thread';
+import { TopicUser, } from '../../types/user';
+import { Topic } from '../../types/topic';
 
 const FilesPanel = () => {
-    let { topicId } = useParams();
-    const [files, setFiles] = useState<any[]>([]);
+    const { topicId } = useParams();
+    const [files, setFiles] = useState<File[]>([]);
     useEffect(() => {
         if (topicId) {
-            fetchFiles(topicId).then((data: any) => setFiles(data));
+            fetchFiles(topicId).then((data) => setFiles(data));
         }
-    }, []);
+    }, [topicId]);
     return (
         <div>
             <h2>Files</h2>
@@ -17,8 +21,8 @@ const FilesPanel = () => {
                 <button className="btn p-1 rounded-md border border-gray-800">Upload new file</button>
             </Link >
             <ul>
-                {files.map((file: any) => <li key={file.id}>
-                    <Link to={`/topics/${topicId}/files/${file.id}`}> {file.name}</Link>
+                {files.map((file) => <li key={file.id}>
+                    <Link to={`/topics/${topicId}/files/${file.id}`}> {file.file}</Link>
                     <button className="btn text-underline">(delete)</button>
                 </li>)}
             </ul>
@@ -27,17 +31,17 @@ const FilesPanel = () => {
 };
 
 const ThreadsPanel = () => {
-    let { topicId } = useParams();
-    const [threads, setThreads] = useState<any[]>([]);
+    const { topicId } = useParams();
+    const [threads, setThreads] = useState<Thread[]>([]);
     useEffect(() => {
         if (topicId) {
-            fetchThreads(topicId).then((data: any) => setThreads(data));
+            fetchThreads(topicId).then((data) => setThreads(data));
         }
-    }, []);
-    const handleDelete = (threadId:string) => {
-        if(!topicId) return;
+    }, [topicId]);
+    const handleDelete = (threadId: string) => {
+        if (!topicId) return;
         console.log('Delete thread');
-        deleteThread(topicId, threadId).then((data: any) => {
+        deleteThread(topicId, threadId).then((data) => {
             console.log(data);
         });
     }
@@ -48,23 +52,23 @@ const ThreadsPanel = () => {
                 <button className="btn p-1 rounded-md border border-gray-800">New thread</button>
             </Link >
             <ul>
-                {threads.map((thread: any) => <li key={thread.id}>
+                {threads.map((thread) => <li key={thread.id}>
                     <Link to={`/topics/${topicId}/threads/${thread.id}`}>{thread.name}</Link>
-                    <button className="btn text-underline" onClick={()=>handleDelete(thread.id)}>(delete)</button>
+                    <button className="btn text-underline" onClick={() => handleDelete(thread.id)}>(delete)</button>
                 </li>)}
             </ul>
         </div>
     )
 };
 
-const UsersPanel = ({ topic }: any) => {
-    const [users, setUsers] = useState<any[]>([]);
+const UsersPanel = () => {
+    const [users, setUsers] = useState<TopicUser[]>([]);
     useEffect(() => {
-        // fetchUsers(topic.ownerIds, topic.memberIds).then((data: any) => setUsers(data));
+        // fetchUsers(topic.ownerIds, topic.memberIds).then((data) => setUsers(data));
         setUsers([
-            { id: 1, name: 'Pooya Alavian', role: 'Owner' },
-            { id: 2, name: 'John Smith', role: 'Member' },
-            { id: 3, name: 'Bill Gates', role: 'Member' },
+            { id: '1', firstName: 'Pooya', email: '', userId: '', lastName: 'Alavian', role: 'owner' },
+            { id: '2', firstName: 'John', email: '', userId: '', lastName: 'Smith', role: 'member' },
+            { id: '3', firstName: 'Bill', email: '', userId: '', lastName: 'Gates', role: 'member' },
         ]);
     }, []);
     return (
@@ -72,8 +76,8 @@ const UsersPanel = ({ topic }: any) => {
             <h2>Topic Members</h2>
             <button className="btn">Add new user</button>
             <ul>
-                {users.map((user: any) => <li key={user.id}>
-                    [{user.role}] {user.name}
+                {users.map((user) => <li key={user.id}>
+                    [{user.role}] {user.firstName}
                     <button className="btn text-underline">(change role)</button>
                     <button className="btn text-underline">(delete)</button>
                 </li>)}
@@ -82,7 +86,7 @@ const UsersPanel = ({ topic }: any) => {
     )
 };
 
-const Panel = ({ children }: any) => {
+const Panel = ({ children }:{children: ReactNode}) => {
     return (
         <div className="panel p-2 bg-gray-100 my-2 rounded-md border border-1 border-gray-800">
             {children}
@@ -91,13 +95,15 @@ const Panel = ({ children }: any) => {
 }
 
 export const SingleTopic = () => {
-    let { topicId } = useParams();
-    const [topic, setTopic] = useState<any>({});
+    const { topicId } = useParams();
+    const [topic, setTopic] = useState<Topic|null>(null);
     useEffect(() => {
         if (topicId) {
-            fetchTopic(topicId).then((data: any) => setTopic(data));
+            fetchTopic(topicId).then((data) => setTopic(data));
         }
-    }, []);
+    }, [topicId]);
+    if (!topic) return <div>Loading...</div>;
+
     return (
         <div className="flex flex-col">
             <div className="top flex-0">
@@ -114,7 +120,7 @@ export const SingleTopic = () => {
                     </div>
                     <div className="flex-1">
                         <Panel>
-                            <UsersPanel topic={topic} />
+                            <UsersPanel />
                         </Panel>
                     </div>
                 </div>

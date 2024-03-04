@@ -1,4 +1,7 @@
 import { environment } from "../environment";
+import { File } from "../types/file";
+import { Thread } from "../types/thread";
+import { Topic } from "../types/topic";
 
 export const wrappedFetch = async <T>(url: string, options: RequestInit) => {
     const response = await fetch(
@@ -18,53 +21,53 @@ export const wrappedFetch = async <T>(url: string, options: RequestInit) => {
 }
 
 export const fetchTopics = async () => {
-    return wrappedFetch<{}[]>('/topics/', { method: 'GET' });
+    return wrappedFetch<Topic[]>('/topics/', { method: 'GET' });
 }
 
 export const fetchTopic = async (topicId: string) => {
-    return wrappedFetch<{}>(`/topics/${topicId}`, { method: 'GET' });
+    return wrappedFetch<Topic>(`/topics/${topicId}`, { method: 'GET' });
 }
 
 export const fetchThreads = async (topicId: string) => {
-    return wrappedFetch<{}[]>(`/topics/${topicId}/threads/`, { method: 'GET' });
+    return wrappedFetch<Thread[]>(`/topics/${topicId}/threads/`, { method: 'GET' });
 }
 
 export const fetchThread = async (topicId: string, threadId: string) => {
-    return wrappedFetch<{}>(`/topics/${topicId}/threads/${threadId}`, { method: 'GET' });
+    return wrappedFetch<Thread>(`/topics/${topicId}/threads/${threadId}`, { method: 'GET' });
 }
 
 export const sendThreadChat = async (topicId: string, threadId: string, message: string) => {
-    return wrappedFetch<{}>(`/topics/${topicId}/threads/${threadId}/chat`,
+    return wrappedFetch<Thread>(`/topics/${topicId}/threads/${threadId}/chat`,
         {
             method: 'POST', body: JSON.stringify({ message })
         });
 }
 
 export const fetchFiles = async (topicId: string) => {
-    return wrappedFetch<{}[]>(`/topics/${topicId}/files/`, { method: 'GET' });
+    return wrappedFetch<File[]>(`/topics/${topicId}/files/`, { method: 'GET' });
 }
 
 export const fetchFile = async (topicId: string, fileId: string) => {
-    return wrappedFetch<{}>(`/topics/${topicId}/files/${fileId}`, { method: 'GET' });
+    return wrappedFetch<File>(`/topics/${topicId}/files/${fileId}`, { method: 'GET' });
 }
 
 export const createTopic = async (body: { name: string; description: string }) => {
-    return wrappedFetch<{}>('/topics/', { method: 'POST', body: JSON.stringify(body) });
+    return wrappedFetch<Topic>('/topics/', { method: 'POST', body: JSON.stringify(body) });
 }
 
 export const createThread = async (topicId: string, body: { name: string; description: string }) => {
-    return wrappedFetch<{id:string}>(`/topics/${topicId}/threads/`,
+    return wrappedFetch<Thread>(`/topics/${topicId}/threads/`,
         { method: 'POST', body: JSON.stringify(body) }
     );
 }
 
 export const deleteThread = async (topicId: string, threadId: string) => {
-    return wrappedFetch<{}>(`/topics/${topicId}/threads/${threadId}`, { method: 'DELETE' });
+    return wrappedFetch<object>(`/topics/${topicId}/threads/${threadId}`, { method: 'DELETE' });
 }
 
 export const createFile = async (topicId: string, filename: string, data:ArrayBuffer)=> {
     const body = new Blob([data], { type: 'application/octet-stream' });
-    return wrappedFetch<{}>(`/topics/${topicId}/files/`, {
+    return wrappedFetch<File>(`/topics/${topicId}/files/`, {
         method: 'POST',
         body,
         headers: { 
