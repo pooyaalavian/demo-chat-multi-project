@@ -85,3 +85,14 @@ export const acquireTokens = async () => {
 
     return authResult;
 };
+
+
+export const handleLogin = (popup = false) => {
+    if (popup) msalInstance.loginPopup({ scopes: appScopes, redirectUri: "/auth" }).catch((error) => console.log(error));
+    else msalInstance.loginRedirect({ scopes: appScopes, redirectUri: "/auth" }).catch((error) => console.log(error));
+};
+
+export const handleLogout = (popup = false) => {
+    if (popup) msalInstance.logoutPopup({ mainWindowRedirectUri: '/', account: msalInstance.getActiveAccount(), }).catch((error) => console.log(error));
+    else msalInstance.logoutRedirect().catch((error) => console.log(error));
+};

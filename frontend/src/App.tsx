@@ -11,7 +11,7 @@ import { NewFile } from './pages/files/NewFile';
 import { NewUser } from './pages/users/NewUser';
 import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
-import { Header } from './Header';
+import { Header } from './components/Header';
 
 function HomePage() {
 
@@ -28,7 +28,7 @@ function App({ instance }: { instance: PublicClientApplication }) {
     <MsalProvider instance={instance}>
       <Router>
         <div className="flex flex-col h-full min-h-screen">
-          <div id="header" className="flex-0 bg-blue-100">
+          <div id="header" className="flex-0">
             <Header />
           </div>
           <div id="content" className="flex-auto h-full p-2 flex flex-col">
