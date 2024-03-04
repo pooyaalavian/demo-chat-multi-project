@@ -1,20 +1,24 @@
-from quart import Quart, request, send_from_directory, render_template
+from quart import Quart, request, send_from_directory, render_template, send_file
 # from quart_schema import QuartSchema, validate_request, validate_response
 from quart_cors import cors
 from src.cosmos_utils import usersCosmosClient
 
-app = Quart(__name__)
+app = Quart(__name__, static_folder="../static", template_folder="../static")
 # QuartSchema(app)
 # app = cors(app, allow_origin=["*","http://localhost:5173"], allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 
 
 @app.route("/")
-async def welcome():
-    return await render_template('index.html')
+async def render_index():
+    return await render_template('index.html', title="Pooya's App", favicon="/vite.svg")
+
+@app.route("/favicon.ico")
+async def render_favicon():
+    return await send_file('static/vite.svg')
 
 @app.route('/assets/<path:path>')
-async def static(path):
+async def send_static_folder(path):
     return await send_from_directory('static/assets', path)
 
 
@@ -41,6 +45,10 @@ app.register_blueprint(topics, url_prefix="/api/topics")
 app.register_blueprint(files, url_prefix="/api/topics/<topicId>/files")
 app.register_blueprint(threads, url_prefix="/api/topics/<topicId>/threads")
 app.register_blueprint(users, url_prefix="/api/users")
+
+@app.route('/<path:path>')
+async def catch_all(path):
+    return await render_template('index.html', title="Pooya's App", favicon="/vite.svg")
 
 app = cors(app, allow_origin="*")
 

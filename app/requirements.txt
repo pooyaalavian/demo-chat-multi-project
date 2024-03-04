@@ -9,6 +9,7 @@ pypdf
 quart
 quart-schema
 quart-cors
+uvicorn
 
 aiohttp
 azure-cosmos
