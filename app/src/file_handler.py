@@ -21,6 +21,7 @@ from src.ai_search import (
 # 7. Get Embeddings
 # 8. Upload the chunks+embedding to Storage
 # 9. Upload the chunks+embedding to Cognitive Search
+# 10. Clean up tmp files
 
 MAX_CHUNK_LENGTH = 4000
 OVERLAP_WINDOW = 100
@@ -31,6 +32,7 @@ class FileHandler:
         self, topicId: str, filename:str, fileClient: TopicFilesCosmosClient
     ):
         self.topicId = topicId
+        self.original_filename = filename
         self.filename = self.clean_name(os.path.basename(filename))
         self.fileext = os.path.splitext(os.path.basename(filename))[1]
         self.fileClient = fileClient
@@ -59,6 +61,13 @@ class FileHandler:
         name = re.sub(r"[^A-Za-z0-9_-]", "", name)
         ext = re.sub(r"[^A-Za-z0-9]", "", ext)
         return name
+    
+    async def cleanup_tmp_files(self):
+        os.remove(self.file_local_path)
+        os.remove(self.doc_intel_local_path)
+        os.remove(self.paragraph_chunks_local_path)
+        os.remove(self.table_chunks_local_path)
+        return self.log(inspect.currentframe().f_code.co_name, f"Cleaned up tmp files.")
     
     async def write_local_file(self, data: bytes):
         with open(self.file_local_path, "wb") as f:
@@ -111,6 +120,8 @@ class FileHandler:
             if bypass<4: await self.postprocess_chunks()
             if bypass<4: await self.upload_to_ai_search()
             
+            self.cleanup_tmp_files()
+            
         except Exception as e:
             self.log(inspect.currentframe().f_code.co_name, f"Error: {e}")
         finally:
@@ -126,7 +137,7 @@ class FileHandler:
     async def create_cosmos_object(self):
         payload = {
             "topicId": self.topicId,
-            "filename": self.file_local_path,
+            "filename": self.original_filename,
             "file": f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.file_blob_path}",
         }
         self.file_object = await self.fileClient.create(payload)
