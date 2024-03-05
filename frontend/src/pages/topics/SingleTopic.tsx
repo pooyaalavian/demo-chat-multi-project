@@ -1,67 +1,73 @@
 import { useParams, Link } from 'react-router-dom';
 import { ReactNode, useEffect, useState } from "react";
-import { deleteThread, fetchFiles, fetchThreads, fetchTopic } from '../../api/internal';
+import { deleteThread, fetchBlobSasToken, fetchFiles, fetchThreads, fetchTopic } from '../../api/internal';
 import { File } from '../../types/file';
 import { Thread } from '../../types/thread';
 import { TopicUser, } from '../../types/user';
 import { Topic } from '../../types/topic';
+import { DeleteIcon, FileSymlinkIcon } from '@fluentui/react-icons-mdl2';
 
-const FilesPanel = () => {
-    const { topicId } = useParams();
-    const [files, setFiles] = useState<File[]>([]);
-    useEffect(() => {
-        if (topicId) {
-            fetchFiles(topicId).then((data) => setFiles(data));
-        }
-    }, [topicId]);
-    return (
-        <div>
-            <h2>Files</h2>
-            <Link to={`/topics/${topicId}/files/new`}>
-                <button className="btn p-1 rounded-md border border-gray-800">Upload new file</button>
-            </Link >
-            <ul>
-                {files.map((file) => <li key={file.id}>
-                    <Link to={`/topics/${topicId}/files/${file.id}`}> {file.file}</Link>
-                    <button className="btn text-underline">(delete)</button>
-                </li>)}
-            </ul>
-        </div>
-    )
-};
 
-const ThreadsPanel = () => {
-    const { topicId } = useParams();
-    const [threads, setThreads] = useState<Thread[]>([]);
-    useEffect(() => {
-        if (topicId) {
-            fetchThreads(topicId).then((data) => setThreads(data));
-        }
-    }, [topicId]);
-    const handleDelete = (threadId: string) => {
-        if (!topicId) return;
-        console.log('Delete thread');
-        deleteThread(topicId, threadId).then((data) => {
-            console.log(data);
-        });
+const FilePanel = ({ file, topicId }: { file: File, topicId: string }) => {
+    // const [showPdf, setShowPdf] = useState(false);
+    // const [pdfUrl, setPdfUrl] = useState('');
+    const sendToBlob = async () => {
+        const token = await fetchBlobSasToken(topicId, file.file);
+        const url = `${file.file}?${token}`;
+        window.open(url, '_blank');
+        // setShowPdf(true);
+        // setPdfUrl(url);
     }
-    return (
-        <div>
-            <h2>Threads</h2>
-            <Link to={`/topics/${topicId}/threads/new`}>
-                <button className="btn p-1 rounded-md border border-gray-800">New thread</button>
-            </Link >
-            <ul>
-                {threads.map((thread) => <li key={thread.id}>
-                    <Link to={`/topics/${topicId}/threads/${thread.id}`}>{thread.name}</Link>
-                    <button className="btn text-underline" onClick={() => handleDelete(thread.id)}>(delete)</button>
-                </li>)}
-            </ul>
+    return (<div className='container mb-2'>
+    <div className="bg-slate-100 p-1">
+        <div className="flex">
+            <div className="flex-1">
+                <Link to={`/topics/${topicId}/files/${file.id}`}>
+                    <div className="">
+                        {file.filename}
+                    </div>
+                    {file.description && <p className='text-sm text-gray-600'>{file.description}</p>}
+                </Link>
+            </div>
+            <div className="flex-0">
+                <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={sendToBlob} title="Go to document">
+                    <FileSymlinkIcon />
+                </button>
+            </div>
         </div>
-    )
+    </div>
+</div>)
 };
 
-const UsersPanel = () => {
+const ThreadPanel = ({ thread, topicId, onDelete }: { thread: Thread; onDelete: () => void; topicId: string }) => {
+
+    return (<div className='container mb-2'>
+        <div className="bg-slate-100 p-1">
+            <div className="flex">
+                <div className="flex-1">
+                    <Link to={`/topics/${topicId}/threads/${thread.id}`}>
+                        <div className="">
+                            {thread.name}
+                            {thread.messages && <span
+                                className="ml-2 inline-block align-top rounded-full bg-sky-500 text-sky-50 px-1 text-xs"
+                                title={`${thread.messages.length} messages in this thread`}>
+                                {thread?.messages?.length}
+                            </span>}
+                        </div>
+                        {thread.description && <p className='text-sm text-gray-600'>{thread.description}</p>}
+                    </Link>
+                </div>
+                <div className="flex-0">
+                    <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={onDelete} title={`Delete ${thread.name}`}>
+                        <DeleteIcon />
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>)
+};
+
+export const UsersPanel = () => {
     const [users, setUsers] = useState<TopicUser[]>([]);
     useEffect(() => {
         // fetchUsers(topic.ownerIds, topic.memberIds).then((data) => setUsers(data));
@@ -85,18 +91,53 @@ const UsersPanel = () => {
         </div>
     )
 };
-
-const Panel = ({ children }:{children: ReactNode}) => {
+interface PanelProps { children: ReactNode, title: string, actionBtn?: { title: string; to: string } }
+const Panel = ({ children, title, actionBtn }: PanelProps) => {
     return (
-        <div className="panel p-2 bg-gray-100 my-2 rounded-md border border-1 border-gray-800">
-            {children}
+        <div className="panel my-2 border border-1">
+            <div className="flex flex-col">
+                <div className="flex-0 p-2 text-xl border-b text-white bg-blue-900">
+                    <div className="flex flex-row items-center justify-between">
+                        <div className="title">
+                            {title}
+                        </div>
+                        <div className="btn text-sm">
+                            {actionBtn && <Link to={actionBtn.to}
+                                className="p-1 rounded-sm bg-white text-blue-800 cursor-pointer hover:bg-sky-500 hover:text-white">
+                                {actionBtn.title}
+                            </Link>}
+                        </div>
+                    </div>
+                </div>
+                <div className="flex-1 p-2 overflow-x-hidden">
+                    {children}
+                </div>
+            </div>
         </div>
     )
 }
 
 export const SingleTopic = () => {
     const { topicId } = useParams();
-    const [topic, setTopic] = useState<Topic|null>(null);
+    const [topic, setTopic] = useState<Topic | null>(null);
+    const [threads, setThreads] = useState<Thread[]>([]);
+    const [files, setFiles] = useState<File[]>([]);
+
+    useEffect(() => {
+        if (topicId) {
+            fetchThreads(topicId).then((data) => setThreads(data));
+            fetchFiles(topicId).then((data) => setFiles(data));
+        }
+    }, [topicId]);
+
+    const handleThreadDelete = (threadId: string) => {
+        if (!topicId) return;
+        console.log('Delete thread');
+        deleteThread(topicId, threadId).then((data) => {
+            console.log(data);
+            fetchThreads(topicId).then((data) => setThreads(data));
+        });
+    }
     useEffect(() => {
         if (topicId) {
             fetchTopic(topicId).then((data) => setTopic(data));
@@ -113,16 +154,20 @@ export const SingleTopic = () => {
             <div className="main flex-1">
                 <div className="flex flex-col space-between">
                     <div className=" flex-1">
-                        <Panel><FilesPanel /> </Panel>
-                    </div>
-                    <div className=" flex-1">
-                        <Panel><ThreadsPanel /> </Panel>
-                    </div>
-                    <div className="flex-1">
-                        <Panel>
-                            <UsersPanel />
+                        <Panel title="Files" actionBtn={{ to: `/topics/${topicId}/files/new`, title: 'Upload New File' }}>
+                            {topicId && files.map((file, id) => <FilePanel file={file} key={id} topicId={topicId} />)}
                         </Panel>
                     </div>
+                    <div className=" flex-1">
+                        <Panel title="Threads" actionBtn={{ to: `/topics/${topicId}/threads/new`, title: 'Start a New Thread' }}>
+                            {topicId && threads.map((thread, id) => <ThreadPanel thread={thread} key={id} onDelete={() => handleThreadDelete(thread.id)} topicId={topicId} />)}
+                        </Panel>
+                    </div>
+                    {/* <div className="flex-1">
+                        <Panel title="Users">
+                            <UsersPanel />
+                        </Panel>
+                    </div> */}
                 </div>
             </div>
         </div>

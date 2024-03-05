@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchTopics } from "../../api/internal";
 import { Topic } from "../../types/topic";
+import { useAccount } from "@azure/msal-react";
 
 interface TopicItemProps {
     topic: Topic;
@@ -23,22 +24,26 @@ export const TopicItem = ({ topic, index }: TopicItemProps) => {
 
 export const TopicHome = () => {
     const [topics, setTopics] = useState<Topic[]>([]);
+    const account = useAccount();
 
     useEffect(() => {
         fetchTopics().then((data) => setTopics(data));
-    }, []);
+    }, [account]);
 
     return <>
-        <h1>Topics</h1>
-        <div className="flex justify-between h-8">
-            <div className=""></div>
+        <div className="flex justify-between items-center mb-2">
+            <div className="flex-1">
+                <span className="text-3xl">Topics</span>
+            </div>
+            <div className="flex-0">
             <Link to="/topics/new">
-                <span className="rounded-lg border p-2 mr-auto border-gray-800 hover:bg-blue-200">
-                    Create Topic
+                <span className="cursor-pointer rounded-lg border p-2 border-gray-800 hover:bg-blue-950 hover:text-white">
+                    + Create a New Topic
                 </span>
             </Link>
-
+            </div>
         </div>
-        {topics.map((topic, id) => <TopicItem topic={topic} index={id} />)}
+
+        {topics.map((topic, id) => <TopicItem topic={topic} index={id} key={id} />)}
     </>
 };

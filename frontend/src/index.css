@@ -12,3 +12,12 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+body{
+  height: 100vh;
+}
+
+
+.bg-blue-grad{
+  background: linear-gradient(315deg, #0077C8 0%, #8CC7CF 25%, #0077C8 50%, #8CC7CF 75%, #0077C8 100%);
+}

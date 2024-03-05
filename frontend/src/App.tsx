@@ -27,11 +27,11 @@ function App({ instance }: { instance: PublicClientApplication }) {
   return (
     <MsalProvider instance={instance}>
       <Router>
-        <div className="flex flex-col h-full min-h-screen">
+        <div className="flex flex-col h-screen">
           <div id="header" className="flex-0">
             <Header />
           </div>
-          <div id="content" className="flex-auto h-full p-2 flex flex-col">
+          <div id="content" className="flex-auto overflow-auto p-2 flex flex-col">
             <Routes>
               <Route path="/topics/:topicId/files/new" element={<NewFile />} />
               <Route path="/topics/:topicId/files/:fileId" element={<SingleFile />} />
@@ -44,7 +44,7 @@ function App({ instance }: { instance: PublicClientApplication }) {
               <Route path="/" element={<HomePage />} />
             </Routes>
           </div>
-          <div id="footer" className="flex-0 h-4 bg-gray-500 text-white overflow-hidden">footer</div>
+          {/* <div id="footer" className="flex-0 h-8 bg-gray-500 text-white overflow-hidden">footer</div> */}
         </div>
       </Router>
     </MsalProvider>

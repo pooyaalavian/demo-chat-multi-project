@@ -6,7 +6,6 @@ import { acquireTokens } from "./msal";
 
 export const wrappedFetch = async <T>(url: string, options: RequestInit) => {
     const token = await acquireTokens();
-    console.log({ token });
     const response = await fetch(
         environment.api + url,
         {
@@ -52,6 +51,10 @@ export const fetchFiles = async (topicId: string) => {
 
 export const fetchFile = async (topicId: string, fileId: string) => {
     return wrappedFetch<File>(`/topics/${topicId}/files/${fileId}`, { method: 'GET' });
+}
+
+export const fetchBlobSasToken = async (topicId: string, blobUrl: string) => {
+    return wrappedFetch<string>(`/topics/${topicId}/files/sas-token?url=${blobUrl}`, { method: 'GET' });
 }
 
 export const createTopic = async (body: { name: string; description: string }) => {

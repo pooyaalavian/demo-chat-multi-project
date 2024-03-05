@@ -1,4 +1,4 @@
-import { LogLevel, Configuration, AuthenticationResult, EventType, PublicClientApplication } from '@azure/msal-browser';
+import { LogLevel, Configuration, AuthenticationResult, EventType, PublicClientApplication, SilentRequest } from '@azure/msal-browser';
 
 const tenantId: string = import.meta.env.VITE_ENTRA_TENANT_ID;
 const clientId: string = import.meta.env.VITE_ENTRA_CLIENT_ID;
@@ -28,10 +28,10 @@ export const msalConfig: Configuration = {
                         console.error(message);
                         return;
                     case LogLevel.Info:
-                        console.info(message);
+                        // console.info(message);
                         return;
                     case LogLevel.Verbose:
-                        console.debug(message);
+                        // console.debug(message);
                         return;
                     case LogLevel.Warning:
                         console.warn(message);
@@ -69,19 +69,27 @@ msalInstance.addEventCallback((event) => {
     }
 });
 
-export const acquireTokens = async () => {
+export async function acquireTokens(forceRefresh = false): Promise<AuthenticationResult> {
+    await msalInstance.initialize();
     const activeAccount = msalInstance.getActiveAccount(); // This will only return a non-null value if you have logic somewhere else that calls the setActiveAccount API
     const accounts = msalInstance.getAllAccounts();
 
     if (!activeAccount && accounts.length === 0) {
         throw new Error('No accounts found');
     }
-    const request = {
+    const request: SilentRequest = {
         scopes: appScopes,
-        account: activeAccount || accounts[0]
+        account: activeAccount || accounts[0],
+        forceRefresh,
     };
 
     const authResult = await msalInstance.acquireTokenSilent(request);
+    const exp = (authResult.idTokenClaims as any).exp;
+    const now = Math.floor(Date.now() / 1000) + 300; // 5 minutes from now
+    if (exp < now) {
+        return await acquireTokens(true);
+    }
+
 
     return authResult;
 };
