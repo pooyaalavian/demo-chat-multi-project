@@ -3,6 +3,9 @@ from quart_schema import validate_response, validate_request
 import os 
 from src.file_handler import FileHandler
 from src.cosmos_utils import filesCosmosClient
+from src.ai_search import search_by_document_id
+from azure.storage.blob import generate_blob_sas
+from datetime import datetime, timedelta
 
 files = Blueprint("files", __name__)
 
@@ -22,6 +25,30 @@ async def topic_add_file(topicId: str):
 async def get_files(topicId: str):
     files = await filesCosmosClient.get_all(partition_key=topicId)
     return jsonify(files)
+
+
+@files.get("/sas-token")
+async def get_file_sas(topicId: str):
+    f = filesCosmosClient
+    url = request.args.get('url')
+    blob_name = url.split(f'/{f._storage_container_name}/',1)[1]
+    result = generate_blob_sas(
+        account_name=f._storage_account_name,
+        container_name=f._storage_container_name,
+        blob_name=blob_name,
+        account_key=f._storage_account_key,
+        permission="r",
+        expiry=datetime.utcnow() + timedelta(hours=1)
+    )
+    return jsonify(result)
+
+
+@files.get("/<docId>")
+async def get_file_from_refrence(topicId: str, docId: str):
+    result = search_by_document_id(topicId, docId )
+    
+    # files = await filesCosmosClient.get_all(partition_key=topicId)
+    return jsonify(result)
 
 
 
