@@ -41,11 +41,12 @@ async def get_thread_by_id(topicId:str, threadId:str):
 @threads.post("/<threadId>/chat")
 async def chat_with_thread(topicId:str, threadId:str):
     body = await request.get_json()
+    user_name = f"{request.user.get('firstName')} {request.user.get('lastName')}"
     message = {
         "content":body["message"],
         "role":"user",
         "agent":"human",
-        "name": request.user.get("name"),
+        "name": user_name,
         "userId": request.userId,
     }
     chatHandler = ChatHandler(threadsCosmosClient, topicId, threadId, message)
