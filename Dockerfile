@@ -25,6 +25,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt \
   
 COPY ./app/ /app/  
 COPY --from=frontend /app/static  /app/static/
+RUN rm /app/.env
 EXPOSE 80  
 
 CMD ["uvicorn", "--host", "0.0.0.0", "--port", "80", "app:app"]
