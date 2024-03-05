@@ -156,6 +156,16 @@ def validate_index(index_name, index_client):
             break
 
 
+def search_by_document_id(topicId:str, documentId:str):
+    index_name = f'idx-{topicId}'
+    client = get_search_client(index_name)
+    results = client.search(
+        filter=f"id eq '{documentId}'",
+    )
+    for result in results:
+        return result
+    return None
+
 def search_semantic(topicId:str, query:str):
     index_name = f'idx-{topicId}'
     client = get_search_client(index_name)
