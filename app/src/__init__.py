@@ -1,3 +1,6 @@
+__version__ = "1.0.0"
+
+
 from quart import Quart, request, send_from_directory, render_template, send_file
 # from quart_schema import QuartSchema, validate_request, validate_response
 from quart_cors import cors
@@ -12,7 +15,7 @@ APP_TITLE = os.getenv('APP_TITLE', "My App")
 
 @app.route("/")
 async def render_index():
-    return await render_template('index.html', title=APP_TITLE, favicon="/vite.svg")
+    return await render_template('index.html', title=APP_TITLE, favicon="/vite.svg",serverVersion=__version__)
 
 @app.route("/favicon.ico")
 async def render_favicon():
@@ -52,7 +55,7 @@ app.register_blueprint(users, url_prefix="/api/users")
 
 @app.route('/<path:path>')
 async def catch_all(path):
-    return await render_template('index.html', title=APP_TITLE, favicon="/vite.svg")
+    return await render_template('index.html', title=APP_TITLE, favicon="/vite.svg",serverVersion=__version__)
 
 app = cors(app, allow_origin="*")
 

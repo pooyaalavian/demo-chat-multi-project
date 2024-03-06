@@ -106,7 +106,10 @@ class ChatHandler:
             max_tokens=750,
             temperature=0.7,
         )
-        metadata = response.choices[0].model_dump()
+        metadata = {
+            "choice":response.choices[0].model_dump(),
+            "usage": response.usage.model_dump(),
+        }
         self.new_messages.append(
             AssistantMessage(content=response.choices[0].message.content, metadata=metadata)
         )

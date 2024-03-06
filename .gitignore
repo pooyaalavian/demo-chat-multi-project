@@ -2,7 +2,7 @@
 tmp/
 node_modules/
 .env
-app/static/
+# app/static/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

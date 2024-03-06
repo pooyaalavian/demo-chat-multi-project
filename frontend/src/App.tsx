@@ -13,6 +13,9 @@ import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
 import { Header } from './components/Header';
 
+declare const SERVER_VERSION: string;
+declare const FRONTEND_VERSION: string;
+
 function HomePage() {
 
   const navigate = useNavigate();
@@ -44,7 +47,9 @@ function App({ instance }: { instance: PublicClientApplication }) {
               <Route path="/" element={<HomePage />} />
             </Routes>
           </div>
-          {/* <div id="footer" className="flex-0 h-8 bg-gray-500 text-white overflow-hidden">footer</div> */}
+          <div id="footer" className="flex-0 h-6 bg-gray-500 text-white overflow-hidden text-sm px-6">
+            Server Version: {SERVER_VERSION} | Frontend Version: {FRONTEND_VERSION}
+          </div>
         </div>
       </Router>
     </MsalProvider>
