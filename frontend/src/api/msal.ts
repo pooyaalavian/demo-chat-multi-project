@@ -13,7 +13,7 @@ console.log({ tenantId, clientId });
 
 export const msalConfig: Configuration = {
     auth: {
-        clientId: import.meta.env.VITE_ENTRA_CLIENT_ID, // This is the ONLY mandatory field that you need to supply.
+        clientId: clientId, // This is the ONLY mandatory field that you need to supply.
         authority: `https://login.microsoftonline.com/${tenantId}`, // Defaults to "https://login.microsoftonline.com/common"
         redirectUri: '/auth', // You must register this URI on Azure Portal/App Registration. Defaults to window.location.origin
         postLogoutRedirectUri: '/', // Indicates the page to navigate after logout.
