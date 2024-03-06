@@ -1,7 +1,13 @@
 import { LogLevel, Configuration, AuthenticationResult, EventType, PublicClientApplication, SilentRequest } from '@azure/msal-browser';
 
-const tenantId: string = import.meta.env.VITE_ENTRA_TENANT_ID;
-const clientId: string = import.meta.env.VITE_ENTRA_CLIENT_ID;
+function parseClientInfo() {
+    let clientId: string = (window as any).CLIENT_ID;
+    let tenantId: string = (window as any).TENANT_ID;
+    if (clientId.startsWith('{{')) clientId = import.meta.env.VITE_ENTRA_CLIENT_ID;
+    if (tenantId.startsWith('{{')) tenantId = import.meta.env.VITE_ENTRA_TENANT_ID;
+    return { clientId, tenantId };
+}
+const { clientId, tenantId } = parseClientInfo();
 
 console.log({ tenantId, clientId });
 

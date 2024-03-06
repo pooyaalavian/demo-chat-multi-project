@@ -1,4 +1,4 @@
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 
 from quart import Quart, request, send_from_directory, render_template, send_file
@@ -12,10 +12,19 @@ app = Quart(__name__, static_folder="../static", template_folder="../static")
 # app = cors(app, allow_origin=["*","http://localhost:5173"], allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 APP_TITLE = os.getenv('APP_TITLE', "My App")
 
+async def render_index():
+    return await render_template(
+        'index.html', 
+        title=APP_TITLE, 
+        favicon="/vite.svg",
+        serverVersion=__version__,
+        clientId=os.getenv("ENTRA_CLIENT_ID"),
+        tenantId=os.getenv("ENTRA_TENANT_ID"),    
+    )
 
 @app.route("/")
-async def render_index():
-    return await render_template('index.html', title=APP_TITLE, favicon="/vite.svg",serverVersion=__version__)
+async def render_root():
+    return await render_index()
 
 @app.route("/favicon.ico")
 async def render_favicon():
