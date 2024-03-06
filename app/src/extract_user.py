@@ -39,10 +39,13 @@ async def extractUser(token: str):
         user = {
             "firstName": decoded["given_name"],
             "lastName": decoded["family_name"],
-            "email": decoded["email"],
+            "email": decoded.get(
+                "preferred_username",
+                decoded.get("email", "")
+            ),
             "id": decoded["oid"],
             "userId": decoded["oid"],
-            "roles": decoded["roles"],
+            "roles": decoded.get("roles",[]),
         }
         logger.debug(f"User: {user['userId']} / {user['email']} extracted")
         return user
