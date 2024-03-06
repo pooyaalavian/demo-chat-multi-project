@@ -1,4 +1,4 @@
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 
 from quart import Quart, request, send_from_directory, render_template, send_file
@@ -64,7 +64,7 @@ app.register_blueprint(users, url_prefix="/api/users")
 
 @app.route('/<path:path>')
 async def catch_all(path):
-    return await render_template('index.html', title=APP_TITLE, favicon="/vite.svg",serverVersion=__version__)
+    return await render_index()
 
 app = cors(app, allow_origin="*")
 
