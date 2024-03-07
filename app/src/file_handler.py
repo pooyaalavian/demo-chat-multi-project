@@ -4,6 +4,7 @@ import json
 import os
 import re
 import inspect
+from datetime import datetime
 from src.embedding import get_content_embedding
 from src.ai_search import (
     create_search_index,
@@ -29,13 +30,14 @@ OVERLAP_WINDOW = 100
 
 class FileHandler:
     def __init__(
-        self, topicId: str, filename:str, fileClient: TopicFilesCosmosClient
+        self, topicId: str, filename:str, fileClient: TopicFilesCosmosClient, user: dict,
     ):
         self.topicId = topicId
         self.original_filename = filename
         self.filename = self.clean_name(os.path.basename(filename))
         self.fileext = os.path.splitext(os.path.basename(filename))[1]
         self.fileClient = fileClient
+        self.user = user
         
         self.file_local_path = f'tmp/{self.topicId}/{self.filename}{self.fileext}'
         self.file_blob_path = f"{self.topicId}/raw/{self.filename}{self.fileext}"
@@ -46,7 +48,19 @@ class FileHandler:
         self.table_chunks_local_path = f'tmp/{self.topicId}/{self.filename}.tables.chunks.jsonl'
 
         self.logs = []
-        
+        self.progress = []
+    
+    async def add_progress(self, step:str, success:bool, message:str, patches:list=[]):
+        progress = {
+            "step": step,
+            "timestamp": datetime.utcnow().isoformat(),
+            "success": success,
+            "message": message
+        }
+        self.progress.append(progress)
+        print(progress)
+        patches.append({"op": "add", "path": "/progress/-", "value": progress})
+        await self.fileClient.patch(self.topicId, self.file_object["id"], patches)
     
     def log(self, method_name, message):
         self.logs.append({
@@ -69,11 +83,6 @@ class FileHandler:
         os.remove(self.table_chunks_local_path)
         return self.log(inspect.currentframe().f_code.co_name, f"Cleaned up tmp files.")
     
-    async def write_local_file(self, data: bytes):
-        with open(self.file_local_path, "wb") as f:
-            f.write(data)
-        return self.log(inspect.currentframe().f_code.co_name, f"Written {self.file_local_path}")
-       
     async def load(self):
         bypass = 0
         try:
@@ -101,17 +110,18 @@ class FileHandler:
         finally:
             return bypass
 
-    async def __call__(self, data: bytes):
+    async def prepare(self, data: bytes):
+        await self.create_cosmos_object()
+        await self.write_local_file(data)
+        await self.upload_raw_to_blob(self.file_local_path, self.file_blob_path)
+        
+    async def main_task(self):
         bypass = await self.load()
         
         try:
-            if bypass<1: await self.write_local_file(data)
-            if bypass<1: await self.upload_to_blob(self.file_local_path, self.file_blob_path)
-            if bypass<1: await self.create_cosmos_object()
-            
             if bypass<2: await self.call_doc_intelligence()
-            if bypass<2: await self.upload_to_blob(self.doc_intel_local_path, self.doc_intel_blob_path)
-            if bypass<2: await self.update_cosmos_object(doc_intel=f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.doc_intel_blob_path}")
+            if bypass<2: await self.upload_doc_to_blob(self.doc_intel_local_path, self.doc_intel_blob_path)
+            # if bypass<2: await self.update_cosmos_object(doc_intel=f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.doc_intel_blob_path}")
             
             if bypass<3: await self.perform_chunking()
             if bypass<3: await self.perform_embedding()
@@ -120,42 +130,64 @@ class FileHandler:
             if bypass<4: await self.postprocess_chunks()
             if bypass<4: await self.upload_to_ai_search()
             
-            self.cleanup_tmp_files()
+            await self.cleanup_tmp_files()
+            await self.add_progress('complete', True, 'File processing complete', 
+                patches=[{'op': 'add', 'path': '/processed', 'value': True}])
             
         except Exception as e:
             self.log(inspect.currentframe().f_code.co_name, f"Error: {e}")
+            self.add_progress('error', False, f"Error: {e}",
+                patches=[{'op': 'add', 'path': '/processed', 'value': True}])
         finally:
             for log in self.logs:
                 print(log)
         return self 
 
-    async def upload_to_blob(self, src_path, blob_path):
-        with open(src_path, "rb") as f:
-            await self.fileClient.upload_file(self.topicId, blob_path, f.read())
-        return self.log(inspect.currentframe().f_code.co_name, f"Uploaded {src_path} to {blob_path}")
-
     async def create_cosmos_object(self):
         payload = {
             "topicId": self.topicId,
             "filename": self.original_filename,
+            "uploaderId": self.user['userId'],
+            "progress":[],
+            "processed": False,
             "file": f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.file_blob_path}",
         }
         self.file_object = await self.fileClient.create(payload)
         return self.log(inspect.currentframe().f_code.co_name, f"Created cosmos object.")
 
-    async def update_cosmos_object(self, **kwargs):
-        payload = self.file_object
-        for k, v in kwargs.items():
-            payload[k] = v
-        self.file_object = await self.fileClient.upsert(payload)
-        return self.log(inspect.currentframe().f_code.co_name, f"Updated cosmos object.")
+    async def write_local_file(self, data: bytes):
+        with open(self.file_local_path, "wb") as f:
+            f.write(data)
+        await self.add_progress("upload_to_local", True, f"File downloaded by server", 
+            patches=[]
+        )
+        return self.log(inspect.currentframe().f_code.co_name, f"Written {self.file_local_path}")
+       
+    async def upload_raw_to_blob(self, src_path, blob_path):
+        with open(src_path, "rb") as f:
+            await self.fileClient.upload_file(self.topicId, blob_path, f.read(), self.original_filename)
+        await self.add_progress("upload_to_blob", True, f"Uploaded {src_path} to {blob_path}", 
+            patches=[{"op": "add", "path": "/file_blob_path", "value": blob_path}]
+            )
+        return self.log(inspect.currentframe().f_code.co_name, f"Uploaded {src_path} to {blob_path}")
 
     async def call_doc_intelligence(self):
         result = doc_intelligence_process_doc(self.file_local_path)
         with open(self.doc_intel_local_path, "w") as f:
             json.dump(result.to_dict(), f, indent=4)
         self.analyze_result = result
+        await self.add_progress("process_doc_intelligence", True, f"Doc. Intelligence processed the document", 
+            patches=[]
+        )
         return self.log(inspect.currentframe().f_code.co_name, f"Called Doc. Intelligence local")
+
+    async def upload_doc_to_blob(self, src_path, blob_path):
+        with open(src_path, "rb") as f:
+            await self.fileClient.upload_file(self.topicId, blob_path, f.read(), self.original_filename)
+        await self.add_progress("upload_doc_intelligence", True, f"Uploaded {src_path} to {blob_path}", 
+            patches=[{"op": "add", "path": "/doc_intel", "value": f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.doc_intel_blob_path}"}]
+            )
+        return self.log(inspect.currentframe().f_code.co_name, f"Uploaded {src_path} to {blob_path}")
 
     async def perform_chunking(self):
         results = self.analyze_result
@@ -257,6 +289,9 @@ class FileHandler:
             )
         self.paragraph_chunks = paragraph_chunks
         self.table_chunks = table_chunks
+        await self.add_progress("perform_chunking", True, f"Created {len(paragraph_chunks)} paragraph chunks and {len(table_chunks)} table chunks. ", 
+            patches=[]
+        )
         return self.log(inspect.currentframe().f_code.co_name, f"Performed chunking. Paragraphs: {len(paragraph_chunks)}, Tables: {len(table_chunks)}")
 
     async def perform_embedding(self):
@@ -269,22 +304,28 @@ class FileHandler:
             chunk["contentVector"] = await get_content_embedding(chunk["content"])
 
         await self.save_chunks_locally()
+        await self.add_progress("perform_embedding", True, f"Performed embedding. ", 
+            patches=[]
+        )
         return self.log(inspect.currentframe().f_code.co_name, f"Performed embedding.")
 
     async def postprocess_chunks(self):
         for id,chunk in enumerate(self.paragraph_chunks):
             print(f"Postprocessing paragraph {id+1}/{len(self.paragraph_chunks)}")
             chunk["pageNumber"] = str(chunk["pageNumber"])
-            chunk['id'] = f'{self.topicId}-{self.filename}-p-{id}'
+            chunk['id'] = f'{self.filename}-p-{id}'
             chunk['url'] = f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.file_blob_path}#page={chunk['pageNumber']}"
 
         for id, chunk in enumerate(self.table_chunks):
             print(f"Postprocessing table {id+1}/{len(self.table_chunks)}")
             chunk["pageNumber"] = str(chunk["pageNumber"])
-            chunk['id'] = f'{self.topicId}-{self.filename}-t-{id}'
+            chunk['id'] = f'{self.filename}-t-{id}'
             chunk['url'] = f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.file_blob_path}#page={chunk['pageNumber']}"
         
         await self.save_chunks_locally()
+        await self.add_progress("postprocess_chunks", True, f"Postprocessed chunks. ", 
+            patches=[]
+        )
         return self.log(inspect.currentframe().f_code.co_name, f"postprocessed chunks.")
     
     async def save_chunks_locally(self):
@@ -303,4 +344,15 @@ class FileHandler:
         search_client = get_search_client(index_name)
         upload_documents_to_index(self.paragraph_chunks, search_client)
         upload_documents_to_index(self.table_chunks, search_client)
+        await self.add_progress("upload_to_ai_search", True, f"Uploaded to AI Search. ", 
+            patches=[]
+        )
         return self.log(inspect.currentframe().f_code.co_name, f"Uploaded to AI Search.")
+    
+    async def update_cosmos_object(self, **kwargs):
+        payload = self.file_object
+        for k, v in kwargs.items():
+            payload[k] = v
+        self.file_object = await self.fileClient.upsert(payload)
+        return self.log(inspect.currentframe().f_code.co_name, f"Updated cosmos object.")
+

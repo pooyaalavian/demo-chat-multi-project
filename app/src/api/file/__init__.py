@@ -6,6 +6,7 @@ from src.cosmos_utils import filesCosmosClient
 from src.ai_search import search_by_document_id
 from azure.storage.blob import generate_blob_sas
 from datetime import datetime, timedelta
+import asyncio
 
 files = Blueprint("files", __name__)
 
@@ -16,9 +17,10 @@ async def topic_add_file(topicId: str):
     data = await request.get_data()
     filename = request.headers["filename"]
     os.makedirs(f'tmp/{topicId}', exist_ok=True)
-    fileHandler = FileHandler(topicId=topicId, filename=filename, fileClient=filesCosmosClient)
-    result = await fileHandler(data)
-    return jsonify(result.logs)
+    fileHandler = FileHandler(topicId=topicId, filename=filename, fileClient=filesCosmosClient, user=request.user)
+    await fileHandler.prepare(data)
+    asyncio.create_task( fileHandler.main_task())
+    return jsonify(fileHandler.file_object)
 
 
 @files.get("/")
@@ -43,12 +45,10 @@ async def get_file_sas(topicId: str):
     return jsonify(result)
 
 
-@files.get("/<docId>")
-async def get_file_from_refrence(topicId: str, docId: str):
-    result = search_by_document_id(topicId, docId )
-    
-    # files = await filesCosmosClient.get_all(partition_key=topicId)
-    return jsonify(result)
+@files.get("/<fileId>")
+async def get_file_from_refrence(topicId: str, fileId: str):
+    file = await filesCosmosClient.get_by_id(topicId, fileId)
+    return jsonify(file)
 
 
 
