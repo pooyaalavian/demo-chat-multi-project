@@ -18,41 +18,38 @@ const FilePanel = ({ file, topicId }: { file: File, topicId: string }) => {
         // setShowPdf(true);
         // setPdfUrl(url);
     }
-    return (<div className='container mb-2'>
-    <div className="bg-slate-100 p-1">
-        <div className="flex">
-            <div className="flex-1">
-                <Link to={`/topics/${topicId}/files/${file.id}`}>
-                    <div className="">
-                        {file.filename}
-                    </div>
-                    {file.description && <p className='text-sm text-gray-600'>{file.description}</p>}
-                </Link>
-            </div>
-            <div className="flex-0">
-                <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={sendToBlob} title="Go to document">
-                    <FileSymlinkIcon />
-                </button>
+    return (<div className='mb-2'>
+        <div className="bg-slate-100 p-1">
+            <div className="flex">
+                <div className="flex-1">
+                    <Link to={`/topics/${topicId}/files/${file.id}`}>
+                        <div className="">
+                            {file.filename}
+                        </div>
+                        {file.description && <p className='text-sm text-gray-600'>{file.description}</p>}
+                    </Link>
+                </div>
+                <div className="flex-0">
+                    <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={sendToBlob} title="Go to document">
+                        <FileSymlinkIcon />
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-</div>)
+    </div>)
 };
 
 const ThreadPanel = ({ thread, topicId, onDelete }: { thread: Thread; onDelete: () => void; topicId: string }) => {
 
-    return (<div className='container mb-2'>
+    return (<div className='mb-2'>
         <div className="bg-slate-100 p-1">
             <div className="flex">
                 <div className="flex-1">
                     <Link to={`/topics/${topicId}/threads/${thread.id}`}>
                         <div className="">
                             {thread.name}
-                            {thread.messages && <span
-                                className="ml-2 inline-block align-top rounded-full bg-sky-500 text-sky-50 px-1 text-xs"
-                                title={`${thread.messages.length} messages in this thread`}>
-                                {thread?.messages?.length}
-                            </span>}
+                            {!thread.messages.length && <span className="text-xs text-gray-500"> (No messages yet)</span>}
+                            {thread.messages.length > 0 && <span className="text-xs text-gray-500"> (last updated {new Date(thread.messages[thread.messages.length - 1].timestamp).toLocaleString()})</span>}
                         </div>
                         {thread.description && <p className='text-sm text-gray-600'>{thread.description}</p>}
                     </Link>
@@ -145,6 +142,41 @@ export const SingleTopic = () => {
     }, [topicId]);
     if (!topic) return <div>Loading...</div>;
 
+    const handleExportChatHistory = () => {
+        const data: unknown[] = [];
+        threads.forEach((thread) => {
+            thread.messages.forEach((message) => {
+                if (message.role === 'user' && message.agent === 'search-assistant') return;
+                const name = (message.role === 'user' && message.agent === 'human') ? message.name : 'AI';
+                const resources: string[] = [];
+                if (message.role === 'assistant') {
+                    // regex to match <Reference id="..." /> and extract the id using
+                    const regex =/<ref.* id="([^"]*)"\/>/gi;
+                    const matches = message.content.matchAll(regex);
+                    for (const match of matches) {
+                        resources.push(match[1]);
+                    }
+                }
+                data.push({
+                    Thread: thread.name,
+                    Timestamp: '"' + new Date(message.timestamp).toLocaleString() + '"',
+                    From: name,
+                    Content: '"' + message.content.replace(/"/g, '""').replace(/,/g, ',') + '"',
+                    Resources: resources.join(','),
+                });
+            });
+        });
+        const cols = ['Thread', 'Timestamp', 'From', 'Content', 'Resources'];
+        const csv = cols.join(',') + '\n' + data.map((row: any) => cols.map(c => row[c]).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        //download it
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'chat-history.csv';
+        a.click();
+    };
+
     return (
         <div className="flex flex-col">
             <div className="top flex-0">
@@ -161,6 +193,12 @@ export const SingleTopic = () => {
                     <div className=" flex-1">
                         <Panel title="Threads" actionBtn={{ to: `/topics/${topicId}/threads/new`, title: 'Start a New Thread' }}>
                             {topicId && threads.map((thread, id) => <ThreadPanel thread={thread} key={id} onDelete={() => handleThreadDelete(thread.id)} topicId={topicId} />)}
+                            <div className="border-t border-gray-400 pt-2">
+                                <button onClick={handleExportChatHistory}
+                                    className="p-1 rounded-sm bg-whiteborder border-blue-800 text-blue-800 cursor-pointer hover:bg-sky-500 hover:text-white">
+                                    Export chat history to Excel
+                                </button>
+                            </div>
                         </Panel>
                     </div>
                     {/* <div className="flex-1">
