@@ -25,7 +25,7 @@ export const NewFile = () => {
             const res = await createFile(topicId, filename, data);
             console.log(res);
             setLoading(false);
-            navigate(`/topics/${topicId}`);
+            navigate(`/topics/${topicId}/files/${res.id}`);
         }
         catch (e) {
             setLoading(false);
@@ -56,7 +56,7 @@ export const NewFile = () => {
                 <div className="flex-1 m-1">
                     <input type="submit" disabled={loading} value={loading ? "..." : "Submit"} className="cursor-pointer rounded-lg border p-2 border-gray-800 hover:bg-blue-950 hover:text-white" />
                 </div>
-                {loading && <div className="flex-1 bg-blue-100 text-blue-950">Uploading file. Please be patient. Dependign on your file size this may take upto 5 minutes.</div>}
+                {loading && <div className="flex-1 bg-blue-100 text-blue-950">Uploading file. Please be patient. Depending on your file size this may take upto 5 minutes.</div>}
                 {error && <div className="flex-1 bg-red-100 text-red-950">{error}</div>}
             </div>
         </form>
