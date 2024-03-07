@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import './App.css';
 import { TopicHome } from './pages/topics/Topic';
 import { SingleTopic } from './pages/topics/SingleTopic';
@@ -12,18 +12,46 @@ import { NewUser } from './pages/users/NewUser';
 import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
 import { Header } from './components/Header';
+import Markdown from "react-markdown";
+import remarkGfm from 'remark-gfm';
+import { wrappedFetch } from './api/internal';
 
 declare const SERVER_VERSION: string;
 declare const FRONTEND_VERSION: string;
 
 function HomePage() {
+  // const navigate = useNavigate();
+  // useEffect(() => {
+  //   navigate('/topics');
+  // }, [navigate]);
 
-  const navigate = useNavigate();
+  const [content, setContent] = useState<string>('');
   useEffect(() => {
-    navigate('/topics');
-  }, [navigate]);
+    wrappedFetch<{ content: string }>('/settings/homepage', { method: 'GET' }).then((data) => setContent(data.content));
+  }, []);
 
-  return null;
+
+  return <section className="markdown-container">
+    <div className="flex flex-col">
+      <div className="flex-0">
+        <div className="flex flex-row">
+          <div className="flex-1"></div>
+          <div className="flex-0">
+            <Link to='/topics'>
+              <div className='cursor-pointer rounded-lg border p-2 border-gray-800 hover:bg-blue-950 hover:text-white'> 
+                Go to topics
+              </div>
+            </Link>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1">
+        <Markdown remarkPlugins={[remarkGfm]}>
+          {content}
+        </Markdown>
+      </div>
+    </div>
+  </section>;
 }
 
 function App({ instance }: { instance: PublicClientApplication }) {
