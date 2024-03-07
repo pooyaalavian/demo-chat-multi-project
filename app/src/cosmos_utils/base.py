@@ -120,6 +120,22 @@ class BaseClient:
         else:
             return True
 
+    async def soft_delete(self, partition_key, id):
+        document = await self.container_client.read_item(
+            item=id, partition_key=partition_key
+        )
+        if document:
+            if document.get("type") != self.type:
+                raise ValueError(
+                    f"Cannot delete document with this client. Detected {document.get('type')} instead of {self.type}"
+                )
+            resp = await self.container_client.patch_item(
+                document, partition_key, 
+                [{"op": "add", "path": "/deleted", "value": True}]
+            )
+            return resp
+        else:
+            return True
     async def get_by_id(self, partition_key, id):
         document = await self.container_client.read_item(
             item=id, partition_key=partition_key

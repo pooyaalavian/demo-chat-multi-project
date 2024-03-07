@@ -33,11 +33,13 @@ async def get_topics():
     userId = request.userId
     if userId is None:
         return jsonify([])
-    docs1, docs2 = await asyncio.gather(
-        topicsCosmosClient.get_topics_accessible_by_userid(userId),
-        topicsCosmosClient.get_topics_owned_by_userid(userId),
-    )
-    return jsonify(docs1 + docs2)
+    # docs1, docs2 = await asyncio.gather(
+    #     topicsCosmosClient.get_topics_accessible_by_userid(userId),
+    #     topicsCosmosClient.get_topics_owned_by_userid(userId),
+    # )
+    # return jsonify(docs1 + docs2)
+    results = await topicsCosmosClient.get_all_user_topics(userId)
+    return jsonify(results)
 
 
 @topics.get("/<topicId>")
@@ -48,7 +50,12 @@ async def get_topic_details(topicId: str):
 
 @topics.delete("/<topicId>")
 async def delete_topic(topicId: str):
-    return jsonify({"message": f"delete topic: {topicId}"})
+    try:
+        await topicsCosmosClient.soft_delete(topicId, topicId)
+        return jsonify({"message": "Topic deleted"})
+    except Exception as e:
+        return jsonify({"message": f"Error deleting topic: {e}"}), 500
+        
 
 
 @topics.post("/<topicid>/search")

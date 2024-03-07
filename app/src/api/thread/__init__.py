@@ -18,6 +18,8 @@ async def create_thread(topicId: str):
         "name": body["name"],
         "description": body["description"],
         "ownerId": userId,
+        "messages": [],
+        "usage":[],
     }
     doc = await threadsCosmosClient.create(payload)
     return jsonify(doc)

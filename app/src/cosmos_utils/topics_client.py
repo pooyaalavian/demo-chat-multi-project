@@ -43,3 +43,13 @@ class TopicsCosmosClient(BaseClient):
         FROM c JOIN reader IN c.memberIds WHERE reader = @userId
         """
         return await self.query(query=query,params=[{"name":"@userId","value":userId}])
+    
+    async def get_all_user_topics(self, userId: str, show_deleted: bool = False):
+        delete_qry = "AND (NOT IS_DEFINED(c.deleted) OR c.deleted != true) " if not show_deleted else ""
+        
+        query = f"""SELECT * FROM c 
+        WHERE c.type = 'topic'
+        AND (ARRAY_CONTAINS(c.ownerIds, @userId) OR ARRAY_CONTAINS(c.memberIds, @userId))
+        {delete_qry}
+        """
+        return await self.query(query=query,params=[{"name":"@userId","value":userId}])

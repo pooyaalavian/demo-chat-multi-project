@@ -42,7 +42,7 @@ class TopicFilesCosmosClient(BaseClient):
         except:
             return None
         
-    async def upload_file(self, topicId:str, destination_path: str, data: bytes):
+    async def upload_file(self, topicId:str, destination_path: str, data: bytes, friendly_name: str):
         if topicId not in destination_path:
             destination_path = f"{topicId}/{destination_path}"
             
@@ -50,5 +50,5 @@ class TopicFilesCosmosClient(BaseClient):
             container=self._storage_container_name,
             blob=destination_path
         )
-        await blob_client.upload_blob(data)
+        await blob_client.upload_blob(data,headers={'x-ms-blob-content-disposition': f'inline; filename="{friendly_name}"'})
             
