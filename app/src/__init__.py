@@ -1,10 +1,10 @@
 __version__ = "1.0.3"
 
 
-from quart import Quart, request, send_from_directory, render_template, send_file
+from quart import Quart, request, send_from_directory, render_template, send_file,jsonify
 # from quart_schema import QuartSchema, validate_request, validate_response
 from quart_cors import cors
-from src.cosmos_utils import usersCosmosClient
+from src.cosmos_utils import usersCosmosClient, settingsCosmosClient
 import os 
 
 app = Quart(__name__, static_folder="../static", template_folder="../static")
@@ -33,6 +33,17 @@ async def render_favicon():
 @app.route('/assets/<path:path>')
 async def send_static_folder(path):
     return await send_from_directory('static/assets', path)
+
+@app.route('/img/<path:path>')
+async def send_static_image(path):
+    return await send_from_directory('static/img', path)
+
+@app.get('/api/settings/<settingid>')
+async def send_settings(settingid):
+    if settingid not in ["homepage"]:
+        return jsonify({})
+    setting = await settingsCosmosClient.get_by_id(settingid, settingid)
+    return jsonify(setting)
 
 
 from src.extract_user import extractUser
