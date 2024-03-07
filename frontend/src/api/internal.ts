@@ -71,6 +71,10 @@ export const deleteThread = async (topicId: string, threadId: string) => {
     return wrappedFetch<object>(`/topics/${topicId}/threads/${threadId}`, { method: 'DELETE' });
 }
 
+export const deleteTopic = async (topicId: string) => {
+    return wrappedFetch<object>(`/topics/${topicId}`, { method: 'DELETE' });
+}
+
 export const createFile = async (topicId: string, filename: string, data:ArrayBuffer)=> {
     const body = new Blob([data], { type: 'application/octet-stream' });
     return wrappedFetch<File>(`/topics/${topicId}/files/`, {
