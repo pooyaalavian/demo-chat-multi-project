@@ -12,7 +12,7 @@ interface ChatMessageProps<T> {
 export const ChatMessage = ({ message }: ChatMessageProps<AnyMessage>) => {
     return <div className="mx-1 my-2">
         {message.role === 'user' && message.agent === 'human' && <UserMessage message={message} />}
-        {message.role === 'user' && message.agent === 'search-assistant' && <SearchMessage message={message} />}
+        {/* {message.role === 'user' && message.agent === 'search-assistant' && <SearchMessage message={message} />} */}
         {message.role === 'assistant' && <AssistantMessage message={message} />}
     </div>;
 }
@@ -29,6 +29,11 @@ export const UserMessage = ({ message }: ChatMessageProps<HumanMessage>) => {
                 <Avatar userId={message.userId} userName={message.name} size={8} />
             </div>
             <div className={"flex-1 rounded-lg p-2 pr-4 border-gray-300 border " + bgColor}>
+                <div className="date text-xs text-gray-700 flex flex-row">
+                    <div className="flex-0">
+                        Sent {new Date(message.timestamp).toLocaleString()}
+                    </div>
+                </div>
                 <div className="content min-h-8">
                     <Markdown remarkPlugins={[remarkGfm]}>
                         {message.content}
@@ -50,7 +55,7 @@ export const SearchMessage = ({ message }: ChatMessageProps<SearchUserMessage>) 
         <div className="flex-gorw-0 flex-shrink-0 w-4">&nbsp;</div>
         <div className="flex-1 relative">
             <div className="header absolute -left-6">
-                <Avatar staticPath="/aisearch.png" size={8} staticText="Azure AI Search" />
+                <Avatar staticPath="/img/aisearch.png" size={8} staticText="Azure AI Search" />
             </div>
             <div className="flex-1 bg-gray-100 rounded-lg p-2 pl-5 border-gray-300 border">
                 <div className="content">
@@ -84,7 +89,7 @@ export const SearchMessage = ({ message }: ChatMessageProps<SearchUserMessage>) 
 
 export const AssistantMessage = ({ message }: ChatMessageProps<AiAssistantMessage>) => {
     let dereferenced = message.content;
-    
+
     // const [refs, setRefs] = useState<Record<string, string>>({});
     useEffect(() => {
         const references = dereferenced.match(/<Reference id="[^"]*"\/>/g);
@@ -93,10 +98,10 @@ export const AssistantMessage = ({ message }: ChatMessageProps<AiAssistantMessag
             references.forEach((ref, i) => {
                 refs[ref] = `[^${i + 1}]`;
                 dereferenced = dereferenced.replace(ref, `[^${i + 1}]`);
-                dereferenced += `\n\n[^${i+1}]: ${ref}`;
+                dereferenced += `\n\n[^${i + 1}]: ${ref}`;
             });
         }
-        
+
 
     }, [message.content]);
 
@@ -104,9 +109,14 @@ export const AssistantMessage = ({ message }: ChatMessageProps<AiAssistantMessag
         <div className="flex-gorw-0 flex-shrink-0 w-4">&nbsp;</div>
         <div className="flex-1 relative">
             <div className="header absolute -left-6">
-                <Avatar staticPath="/gpt.png" size={8} staticText="GPT" />
+                <Avatar staticPath="/img/gpt.png" size={8} staticText="GPT" />
             </div>
             <div className="flex-1 bg-gray-100 rounded-lg p-2 pl-5 border-gray-300 border">
+                <div className="date text-xs text-gray-700 flex flex-row">
+                    <div className="flex-0">
+                        Sent {new Date(message.timestamp).toLocaleString()}
+                    </div>
+                </div>
                 <div className="content">
                     <Markdown remarkPlugins={[remarkGfm]}>
                         {dereferenced}
