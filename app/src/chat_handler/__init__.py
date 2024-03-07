@@ -21,7 +21,8 @@ SEARCH_TYPE = os.getenv("SEARCH_TYPE")
 if SEARCH_TYPE not in ["vector", "semantic", "hybrid"]:
     print("Invalid search type. Defaulting to 'vector'")
     SEARCH_TYPE = "vector"
-    
+
+TOP_N = int(os.getenv("SEARCH_TOP_N", "10"))
 
   
 class ChatHandler:
@@ -53,26 +54,33 @@ class ChatHandler:
         return msgs
 
     async def get_context(self):
+        openai_model = CHAT_MODEL
         messages = self.get_messages(return_search_assistant=False)
         my_messages = [message_maker({"content":GET_CONTEXT_PROMPT, "role":"system"})] + messages
         my_messages = [m.to_llm() for m in my_messages]
         response = await oai_client.chat.completions.create(
             messages=my_messages,
-            model=CHAT_MODEL,
+            model=openai_model,
             max_tokens=750,
             temperature=0.7,
         )
         self.context_query = response.choices[0].message.content
         search_type = SEARCH_TYPE
+        self.thread['usage'].append({
+            "type":"search",
+            "model":openai_model,
+            "prompt_tokens": response.usage.prompt_tokens,
+            "completion_tokens": response.usage.completion_tokens,
+        })
         
         if search_type == 'vector':
             vector = await get_content_embedding(self.context_query)
-            _results = search_vector(self.topicId, vector)
+            _results = search_vector(self.topicId, vector, top_n=TOP_N)
         elif search_type == 'semantic':
-            _results = search_semantic(self.topicId, self.context_query)
+            _results = search_semantic(self.topicId, self.context_query, top_n=TOP_N)
         elif search_type == 'hybrid':
             vector = await get_content_embedding(self.context_query)
-            _results = search_hybrid(self.topicId, vector, self.context_query)
+            _results = search_hybrid(self.topicId, vector, self.context_query, top_n=TOP_N)
 
         results = []
         count = 0
@@ -110,6 +118,12 @@ class ChatHandler:
             "choice":response.choices[0].model_dump(),
             "usage": response.usage.model_dump(),
         }
+        self.thread['usage'].append({
+            "type":"search",
+            "model":CHAT_MODEL,
+            "prompt_tokens": response.usage.prompt_tokens,
+            "completion_tokens": response.usage.completion_tokens,
+        })
         self.new_messages.append(
             AssistantMessage(content=response.choices[0].message.content, metadata=metadata)
         )

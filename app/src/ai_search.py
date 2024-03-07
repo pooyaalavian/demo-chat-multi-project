@@ -166,43 +166,43 @@ def search_by_document_id(topicId:str, documentId:str):
         return result
     return None
 
-def search_semantic(topicId:str, query:str):
+def search_semantic(topicId:str, query:str,*, top_n:int=5):
     index_name = f'idx-{topicId}'
     client = get_search_client(index_name)
     results = client.search(
         search_text=query,
         query_type="semantic",
-        top=5,
+        top=top_n,
         semantic_configuration_name="my-semantic-config",
     )
     return results
 
 
-def search_vector(topicId:str, vector:list[float]):
+def search_vector(topicId:str, vector:list[float], *, top_n:int=5):
     index_name = f'idx-{topicId}'
     client = get_search_client(index_name)
     results = client.search(
-        top=5,
+        top=top_n,
         vector_queries=[
             {
                 "kind": "vector",
                 "vector": vector,
                 "exhaustive": False,
                 "fields": "contentVector",
-                "k": 5,
+                "k": top_n,
             }
         ],
     )
     return results
 
 
-def search_hybrid(topicId:str, query:str, vector:list[float]):
+def search_hybrid(topicId:str, query:str, vector:list[float],*, top_n:int=5):
     index_name = f'idx-{topicId}'
     client = get_search_client(index_name)
     results = client.search(
         search_text=query,
         query_type="semantic",
-        top=5,
+        top=top_n,
         semantic_configuration_name="my-semantic-config",
         vector_queries=[
             {
@@ -210,7 +210,7 @@ def search_hybrid(topicId:str, query:str, vector:list[float]):
                 "vector": vector,
                 "exhaustive": False,
                 "fields": "contentVector",
-                "k": 5,
+                "k": top_n,
             }
         ],
     )
