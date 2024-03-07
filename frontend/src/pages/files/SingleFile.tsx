@@ -4,7 +4,7 @@ import { BackToTopic } from '../topics/BackToTopic';
 import { fetchFile } from '../../api/internal';
 import { File, FileProgress } from '../../types/file';
 import { LoadingBar } from '../../components/LoadingBar';
-import { PDFIcon, SkypeCheckIcon, TextDocumentIcon, StatusCircleQuestionMarkIcon } from '@fluentui/react-icons-mdl2';
+import { PDFIcon, SkypeCheckIcon, TextDocumentIcon } from '@fluentui/react-icons-mdl2';
 import { WordDocumentIcon, PowerPointDocumentIcon, ExcelDocumentIcon } from '@fluentui/react-icons-mdl2-branded';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 
