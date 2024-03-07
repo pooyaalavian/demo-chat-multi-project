@@ -1,0 +1,18 @@
+.parent {
+    position: relative;
+    overflow: hidden;
+}
+
+.child {
+    position: absolute;
+    left: 0;
+    height: 100%;
+    animation: progress 1.5s linear infinite;
+}
+
+@keyframes progress {
+    0% { left: 0; right:100%; }
+    20% { left: 0;right:75%; }
+    80% { right: 0;left: 75%; }
+    100% { left: 100%; right:0; }
+}
