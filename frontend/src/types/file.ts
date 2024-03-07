@@ -1,3 +1,10 @@
+export interface FileProgress{
+    step: string;
+    message: string;
+    timestamp: string;
+    success: boolean;
+}
+
 export interface File{
     id: string;
     type: 'file';
@@ -10,4 +17,6 @@ export interface File{
     doc_intel: string;
     createdAt: string;
     updatedAt: string;
+    progress: FileProgress[];
+    processed: boolean;
 }
