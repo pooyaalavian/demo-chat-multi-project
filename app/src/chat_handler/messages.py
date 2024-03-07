@@ -1,6 +1,7 @@
 from typing import Literal
 from abc import ABC, abstractmethod
 import re
+from datetime import datetime
 
 
 class Message(ABC):
@@ -20,6 +21,8 @@ class Message(ABC):
         """
         pass
 
+def get_now():
+    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 class UserMessage(Message):
     def __init__(self, *, agent: str, name: str, content: str, userId: str, **kwargs):
@@ -30,6 +33,7 @@ class UserMessage(Message):
             raise ValueError("Agent must be 'human'")
         self.role = "user"
         self.content = content
+        self.timestamp = kwargs.get('timestamp', get_now())
 
     def clean_name(self, name):
         name = re.sub(r"[^a-zA-Z0-9\s_-]", "", name)
@@ -50,6 +54,7 @@ class UserMessage(Message):
             "name": self.name,
             "content": self.content,
             "userId": self.userId,
+            "timestamp": self.timestamp,
         }
 
 
@@ -57,12 +62,13 @@ class SystemMessage:
     def __init__(self, *, content: str, **kwargs):
         self.role = "system"
         self.content = content
+        self.timestamp = kwargs.get('timestamp', get_now())
 
     def to_llm(self):
         return {"role": "system", "content": self.content}
 
     def to_dict(self):
-        return {"role": self.role, "content": self.content}
+        return {"role": self.role, "content": self.content, "timestamp": self.timestamp}
 
 
 class SourceMessage:
@@ -84,6 +90,7 @@ class SourceMessage:
         self.input = input
         self.results = results
         self.content = self.set_content()
+        self.timestamp = kwargs.get('timestamp', get_now())
 
     def set_content(self):
         content = f"The results of performing a {self.search_type} search for '{self.input}' are:\n"
@@ -101,6 +108,7 @@ class SourceMessage:
             "search_type": self.search_type,
             "input": self.input,
             "results": self.results,
+            "timestamp": self.timestamp,
         }
 
 
@@ -109,12 +117,13 @@ class AssistantMessage:
         self.role = "assistant"
         self.content = content
         self.metadata = metadata
+        self.timestamp = kwargs.get('timestamp', get_now())
 
     def to_llm(self):
         return {"role": self.role, "content": self.content}
 
     def to_dict(self):
-        return {"role": self.role, "content": self.content, "metadata": self.metadata}
+        return {"role": self.role, "content": self.content, "metadata": self.metadata, "timestamp": self.timestamp}
 
 
 def message_maker(data: dict):
