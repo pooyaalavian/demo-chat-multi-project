@@ -55,6 +55,7 @@ def create_search_index(index_name, index_client):
                 {"searchable": False, "name": "truncatedStart", "type": "Edm.Boolean"},
                 {"searchable": False, "name": "truncatedEnd", "type": "Edm.Boolean"},
                 {"searchable": False, "name": "pageNumber", "type": "Edm.String"},
+                {"searchable": False, "name": "fileId", "type": "Edm.String"},
                 {"searchable": False, "name": "metadata", "type": "Edm.String"},
                 {
                     "name": "contentVector",

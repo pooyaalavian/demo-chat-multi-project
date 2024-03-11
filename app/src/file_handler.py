@@ -314,12 +314,14 @@ class FileHandler:
             print(f"Postprocessing paragraph {id+1}/{len(self.paragraph_chunks)}")
             chunk["pageNumber"] = str(chunk["pageNumber"])
             chunk['id'] = f'{self.filename}-p-{id}'
+            chunk['fileId'] = self.file_object["id"]
             chunk['url'] = f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.file_blob_path}#page={chunk['pageNumber']}"
 
         for id, chunk in enumerate(self.table_chunks):
             print(f"Postprocessing table {id+1}/{len(self.table_chunks)}")
             chunk["pageNumber"] = str(chunk["pageNumber"])
             chunk['id'] = f'{self.filename}-t-{id}'
+            chunk['fileId'] = self.file_object["id"]
             chunk['url'] = f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.file_blob_path}#page={chunk['pageNumber']}"
         
         await self.save_chunks_locally()

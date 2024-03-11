@@ -68,12 +68,14 @@ from .api.file import files
 from .api.conversation import conversations
 from .api.user import users
 from .api.settings import settings
+from .api.search import search
 
 app.register_blueprint(topics, url_prefix="/api/topics")
 app.register_blueprint(files, url_prefix="/api/topics/<topicId>/files")
 app.register_blueprint(conversations, url_prefix="/api/topics/<topicId>/conversations")
 app.register_blueprint(users, url_prefix="/api/users")
 app.register_blueprint(settings, url_prefix="/api/settings")
+app.register_blueprint(search, url_prefix="/api/search")
 
 @app.route('/<path:path>')
 async def catch_all(path):
