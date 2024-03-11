@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
-import { AiAssistantMessage, AnyMessage, HumanMessage, SearchUserMessage } from "../../types/conversation";
+import { AiAssistantMessage, AnyMessage, CogSearchResult, HumanMessage, SearchUserMessage } from "../../types/conversation";
 import Markdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
+import supersub from "remark-supersub";
 import { Avatar } from "../../components/Avatar";
 import { useAccount } from "@azure/msal-react";
+import { LoadingBar } from "../../components/LoadingBar";
+import { fetchBlobSasToken, fetchFile, fetchSearchResults } from "../../api/internal";
+import { useParams } from "react-router-dom";
+import { File } from "../../types/file";
+import { ReferencePopup } from "./reference-popup";
+import { createPortal } from "react-dom";
+
 
 interface ChatMessageProps<T> {
     message: T;
@@ -35,7 +43,7 @@ export const UserMessage = ({ message }: ChatMessageProps<HumanMessage>) => {
                     </div>
                 </div>
                 <div className="content min-h-8">
-                    <Markdown remarkPlugins={[remarkGfm]}>
+                    <Markdown remarkPlugins={[remarkGfm, supersub]}>
                         {message.content}
                     </Markdown>
                 </div>
@@ -87,23 +95,55 @@ export const SearchMessage = ({ message }: ChatMessageProps<SearchUserMessage>) 
     </div>;
 };
 
-export const AssistantMessage = ({ message }: ChatMessageProps<AiAssistantMessage>) => {
-    let dereferenced = message.content;
+const ReferenceItem = ({ referenceId, id }: { referenceId: string, id: number; }) => {
+    const { topicId } = useParams();
+    const [loading, setLoading] = useState(true);
+    const [result, setResult] = useState<CogSearchResult | null>(null);
+    const [fileData, setFileData] = useState<File | null>(null);
+    const [sasToken, setSasToken] = useState<string>(''); 
+    const [showReference, setShowReference] = useState(false);
 
-    // const [refs, setRefs] = useState<Record<string, string>>({});
     useEffect(() => {
-        const references = dereferenced.match(/<Reference id="[^"]*"\/>/g);
-        const refs: Record<string, unknown> = {};
-        if (references) {
-            references.forEach((ref, i) => {
-                refs[ref] = `[^${i + 1}]`;
-                dereferenced = dereferenced.replace(ref, `[^${i + 1}]`);
-                dereferenced += `\n\n[^${i + 1}]: ${ref}`;
-            });
-        }
+        if (topicId === undefined) return;
+        fetchSearchResults(topicId, referenceId).then(data => setResult(data));
+    }, [topicId]);
 
+    useEffect(() => {
+        if (topicId === undefined) return;
+        if (result === null) return;
+        fetchFile(topicId, result.fileId).then(async data => {
+            setFileData(data);
+            const token = await fetchBlobSasToken(topicId,data.file);
+            setLoading(false);
+            setSasToken(token);
+        });
+    }, [topicId, result]);
 
-    }, [message.content]);
+    const handleRefClick = () => {
+        if (result === null) return;
+        if (fileData === null) return;
+        console.log('Open file', fileData);
+        setShowReference(true);
+    };
+
+    return <div className="overflow-hidden border border-gray-300 mt-1 px-1 bg-white rounded-md flex items-center relative cursor-pointer" >
+        
+        <div className="text-lg text-blue-600" onClick={handleRefClick}>
+            [{id}]
+        </div>
+        {result && fileData && <div className="text-xs text-gray-700" onClick={handleRefClick}>
+            {fileData.filename} - Page {result.pageNumber} 
+            {result.truncatedStart && 'and possibly previous pages'}
+            {result.truncatedEnd && 'and possibly following pages'}
+        </div>}
+        {loading && <div className="absolute bottom-0 left-0 right-0"><LoadingBar /></div>}
+        {result && fileData && showReference
+            && createPortal(<ReferencePopup path={fileData.file+'?'+sasToken} page={result.pageNumber} onClose={() => setShowReference(false)} />, document.body)}
+    </div>;
+};
+
+export const AssistantMessage = ({ message }: ChatMessageProps<AiAssistantMessage>) => {
+    const { content, references } = message;
 
     return <div className="flex">
         <div className="flex-gorw-0 flex-shrink-0 w-4">&nbsp;</div>
@@ -118,9 +158,13 @@ export const AssistantMessage = ({ message }: ChatMessageProps<AiAssistantMessag
                     </div>
                 </div>
                 <div className="content">
-                    <Markdown remarkPlugins={[remarkGfm]}>
-                        {dereferenced}
+                    <Markdown remarkPlugins={[remarkGfm, supersub]}>
+                        {content}
                     </Markdown>
+                    <div className="flex flex-col">
+                        {references.length > 0 && <div className="text-lg text-blue-600">References:</div>}
+                        {references.map((ref, key) => <ReferenceItem referenceId={ref} id={key + 1} key={key} />)}
+                    </div>
                 </div>
             </div>
         </div>

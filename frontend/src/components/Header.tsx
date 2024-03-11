@@ -14,38 +14,39 @@ title = tmp.textContent || title;
 const Menu = ({ account }: { account: AccountInfo }) => {
     const roles = account?.idTokenClaims?.roles || ['User'];
     return <>
-    <div className="fixed top-0 left-0 right-0 bottom-0"></div>
-    <div className="fixed top-0 right-0 mt-16 min-w-64 rounded-sm shadow-lg bg-white text-blue-950 border border-gray-200"
-    style={{zIndex:9999}}>
-        <div className="flex flex-col">
-            <div className="flex-1 m-2">You are logged in as<br></br>
-                <span className="italic"> {account.username}</span>
-            </div>
-            <div className="flex-1 m-2">You have the following roles:
-                <ul>
-                    {roles.map((role, id) => <li key={id} className="italic">{role}</li>)}
-                </ul>
-            </div>
-            <div className="flex-1 bg-gray-100 p-2">
-                <button onClick={() => handleLogout(true)}
-                    className="border border-gray-700 hover:bg-blue-700 hover:text-white hover:shadow-md bg-white rounded-md p-2">
-                    Sign out
-                </button>
+        <div className="fixed top-0 left-0 right-0 bottom-0"></div>
+        <div className="fixed top-0 right-0 mt-16 min-w-64 rounded-sm shadow-lg bg-white text-blue-950 border border-gray-200"
+            style={{ zIndex: 9999 }}>
+            <div className="flex flex-col">
+                <div className="flex-1 m-2">You are logged in as<br></br>
+                    <span className="italic"> {account.username}</span>
+                </div>
+                <div className="flex-1 m-2">You have the following roles:
+                    <ul>
+                        {roles.map((role, id) => <li key={id} className="italic">{role}</li>)}
+                    </ul>
+                </div>
+                <div className="flex-1 bg-gray-100 p-2">
+                    <button onClick={() => handleLogout(true)}
+                        className="border border-gray-700 hover:bg-blue-700 hover:text-white hover:shadow-md bg-white rounded-md p-2">
+                        Sign out
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
     </>;
 };
 
 const LoggedInPanel = ({ account }: { account: AccountInfo }) => {
     const [menuVisible, setMenuVisible] = useState(false);
-    
+
 
     const toggleMenu = () => setMenuVisible(!menuVisible);
 
     return <div className="cursor-pointer" onClick={toggleMenu}>
-        <div className="flex flex-row">
-            <div className="col1 max-w-48 ">
+        <div className="flex flex-row  hover:bg-blue-200 hover:text-blue-900 transition-all duration-500">
+            <div className="w-2"></div>
+            <div className="col1 max-w-48">
                 <div className="flex flex-col h-full justify-center">
                     <div className="row1 text-xl overflow-hidden">{account.name}</div>
                     {/* <div className="row2 text-sm overflow-hidden text-ellipsis">{account.username}</div> */}
@@ -82,9 +83,11 @@ export const Header = () => {
 
 
     return <section id="header" className="flex flex-row h-16 overflow-hidden items-center bg-blue-950 text-blue-100">
-        <div className="h1 text-2xl p-2 flex-grow-0 flex-shrink-0">
-            <Link to="/">{title}</Link>
+        <div className="flex-grow-0 flex-shrink-0 px-2 text-3xl flex items-center">
+         {title}
         </div>
+        <Link className="p-1 underline cursor-pointer transition-all hover:bg-white hover:text-blue-600 items-center flex" to="/">Home</Link>
+        <Link className="p-1 underline cursor-pointer transition-all hover:bg-white hover:text-blue-600 items-center flex" to="/topics">Topics</Link>
         <div className="flex-1"></div>
         <div className="flex-0">
             <AuthenticatedTemplate>

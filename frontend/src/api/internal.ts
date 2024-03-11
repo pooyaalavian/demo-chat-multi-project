@@ -1,6 +1,6 @@
 import { environment } from "../environment";
 import { File } from "../types/file";
-import { Conversation } from "../types/conversation";
+import { CogSearchResult, Conversation } from "../types/conversation";
 import { Topic } from "../types/topic";
 import { acquireTokens } from "./msal";
 
@@ -92,3 +92,7 @@ export const createFile = async (topicId: string, filename: string, data:ArrayBu
 export const createUser = async (body: { name: string; email: string }) => {
     return wrappedFetch<{userId:string}>('/users/', { method: 'POST', body: JSON.stringify(body) });
 }
+
+export const fetchSearchResults = async (topicId: string, searchId: string) => {
+    return wrappedFetch<CogSearchResult>(`/search/${topicId}/${searchId}`, { method: 'GET' });
+};

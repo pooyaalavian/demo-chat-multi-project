@@ -21,6 +21,7 @@ export interface SearchUserMessage {
 export interface AiAssistantMessage {
     role: 'assistant';
     content: string;
+    references: string[];
     metadata: unknown;
     timestamp: string;
 }
@@ -36,5 +37,18 @@ export interface Conversation {
     createdAt: string;
     updatedAt: string;
     messages: AnyMessage[];
-    usage?: { type: 'search'|'chat',model:string; prompt_tokens: number; completion_tokens: number; }[];
+    usage?: { type: 'search' | 'chat', model: string; prompt_tokens: number; completion_tokens: number; }[];
+}
+
+export interface CogSearchResult {
+    id: string;
+    fileId: string;
+    content: string;
+    title: string;
+    url: string;
+    type: 'paragraph'|'table';
+    truncatedStart: boolean;
+    truncatedEnd: boolean;
+    pageNumber: string;
+    metadata: unknown;
 }
