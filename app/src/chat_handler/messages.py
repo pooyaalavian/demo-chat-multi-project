@@ -21,8 +21,10 @@ class Message(ABC):
         """
         pass
 
+
 def get_now():
     return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
 
 class UserMessage(Message):
     def __init__(self, *, agent: str, name: str, content: str, userId: str, **kwargs):
@@ -33,7 +35,10 @@ class UserMessage(Message):
             raise ValueError("Agent must be 'human'")
         self.role = "user"
         self.content = content
-        self.timestamp = kwargs.get('timestamp', get_now())
+        self.timestamp = kwargs.get("timestamp", get_now())
+        self.topicId = kwargs.get("topicId", None)
+        self.conversationId = kwargs.get("conversationId", None)
+        self.messageId = kwargs.get("messageId", None)
 
     def clean_name(self, name):
         name = re.sub(r"[^a-zA-Z0-9\s_-]", "", name)
@@ -55,6 +60,9 @@ class UserMessage(Message):
             "content": self.content,
             "userId": self.userId,
             "timestamp": self.timestamp,
+            "topicId": self.topicId,
+            "conversationId": self.conversationId,
+            "messageId": self.messageId,
         }
 
 
@@ -62,7 +70,7 @@ class SystemMessage:
     def __init__(self, *, content: str, **kwargs):
         self.role = "system"
         self.content = content
-        self.timestamp = kwargs.get('timestamp', get_now())
+        self.timestamp = kwargs.get("timestamp", get_now())
 
     def to_llm(self):
         return {"role": "system", "content": self.content}
@@ -90,7 +98,10 @@ class SourceMessage:
         self.input = input
         self.results = results
         self.content = self.set_content()
-        self.timestamp = kwargs.get('timestamp', get_now())
+        self.timestamp = kwargs.get("timestamp", get_now())
+        self.topicId = kwargs.get("topicId", None)
+        self.conversationId = kwargs.get("conversationId", None)
+        self.messageId = kwargs.get("messageId", None)
 
     def set_content(self):
         content = f"The results of performing a {self.search_type} search for '{self.input}' are:\n"
@@ -109,6 +120,9 @@ class SourceMessage:
             "input": self.input,
             "results": self.results,
             "timestamp": self.timestamp,
+            "topicId": self.topicId,
+            "conversationId": self.conversationId,
+            "messageId": self.messageId,
         }
 
 
@@ -117,13 +131,26 @@ class AssistantMessage:
         self.role = "assistant"
         self.content = content
         self.metadata = metadata
-        self.timestamp = kwargs.get('timestamp', get_now())
+        self.timestamp = kwargs.get("timestamp", get_now())
+        self.references = kwargs.get("references", [])
+        self.topicId = kwargs.get("topicId", None)
+        self.conversationId = kwargs.get("conversationId", None)
+        self.messageId = kwargs.get("messageId", None)
 
     def to_llm(self):
         return {"role": self.role, "content": self.content}
 
     def to_dict(self):
-        return {"role": self.role, "content": self.content, "metadata": self.metadata, "timestamp": self.timestamp}
+        return {
+            "role": self.role,
+            "content": self.content,
+            "metadata": self.metadata,
+            "timestamp": self.timestamp,
+            "references": self.references,
+            "topicId": self.topicId,
+            "conversationId": self.conversationId,
+            "messageId": self.messageId,
+        }
 
 
 def message_maker(data: dict):

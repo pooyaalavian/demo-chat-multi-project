@@ -2,7 +2,7 @@ import asyncio
 from quart import Blueprint, jsonify, request
 
 # from quart_schema import validate_response, validate_request
-from .types import Topic, Thread, Message
+from .types import Topic, Conversation, Message
 from src.cosmos_utils import topicsCosmosClient
 
 topics = Blueprint("topics", __name__)

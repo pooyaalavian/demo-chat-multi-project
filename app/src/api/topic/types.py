@@ -12,14 +12,13 @@ class Topic:
     updated_at: str
     owner_user_id: str
     files: list[str]
-    thread_ids: list[str]
 
 
 @dataclass
-class Thread:
-    thread_id: str
+class Conversation:
+    conversation_id: str
     topic_id: str
-    type: Literal["thread"]
+    type: Literal["conversation"]
     owner_user_id: str
     created_at: str
     updated_at: str
@@ -28,7 +27,7 @@ class Thread:
 @dataclass
 class Message:
     message_id: str
-    thread_id: str
+    conversation_id: str
     topic_id: str
     type: Literal["message"]
     created_at: str

@@ -65,12 +65,12 @@ async def append_user_info():
 
 from .api.topic import topics
 from .api.file import files
-from .api.thread import threads
+from .api.conversation import conversations
 from .api.user import users
 
 app.register_blueprint(topics, url_prefix="/api/topics")
 app.register_blueprint(files, url_prefix="/api/topics/<topicId>/files")
-app.register_blueprint(threads, url_prefix="/api/topics/<topicId>/threads")
+app.register_blueprint(conversations, url_prefix="/api/topics/<topicId>/conversations")
 app.register_blueprint(users, url_prefix="/api/users")
 
 @app.route('/<path:path>')

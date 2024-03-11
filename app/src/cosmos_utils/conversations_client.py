@@ -4,9 +4,9 @@ from typing import Literal
 
 
 @dataclass
-class TopicThread:
-    threadId: str
-    type: Literal["thread"]
+class Conversation:
+    conversationId: str
+    type: Literal["conversation"]
     topicId: str
     title: str
     authorId: str
@@ -14,7 +14,7 @@ class TopicThread:
     modifiedAt: str
 
 
-class TopicThreadsCosmosClient(BaseClient):
+class ConversationCosmosClient(BaseClient):
     def __init__(
         self,
         cosmosdb_endpoint: str,
@@ -27,7 +27,7 @@ class TopicThreadsCosmosClient(BaseClient):
             credential,
             database_name,
             container_name,
-            type="thread",
+            type="conversation",
             partition_key="topicId",
         )
 

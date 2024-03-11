@@ -1,4 +1,4 @@
-from src.cosmos_utils.threads_client import TopicThreadsCosmosClient
+from app.src.cosmos_utils.conversations_client import ConversationCosmosClient
 from openai import AsyncAzureOpenAI
 import os
 from datetime import datetime
@@ -28,21 +28,21 @@ TOP_N = int(os.getenv("SEARCH_TOP_N", "10"))
 class ChatHandler:
     def __init__(
         self,
-        threadsClient: TopicThreadsCosmosClient,
+        conversationsClient: ConversationCosmosClient,
         topicId: str,
-        threadId: str,
+        conversationId: str,
         recent_user_message: dict,
     ):
-        self.threadsCosmosClient = threadsClient
+        self.conversationsCosmosClient = conversationsClient
         self.topicId = topicId
-        self.threadId = threadId
+        self.conversationId = conversationId
         self.new_messages = [message_maker(recent_user_message)]
 
     def get_messages(self, return_human=True, return_assistant=True, return_search_assistant=True):
         '''Returns all messages in the history plus all messages created so far (but not saved yet). 
         Excludes system prompts, as they must be produced by use-case.'''
         
-        all_msgs = [message_maker(m) for m in self.thread["messages"]] + self.new_messages
+        all_msgs = [message_maker(m) for m in self.conversation["messages"]] + self.new_messages
         msgs = []
         for msg in all_msgs:
             if msg.role == "user" and msg.agent == "human" and return_human:
@@ -66,7 +66,7 @@ class ChatHandler:
         )
         self.context_query = response.choices[0].message.content
         search_type = SEARCH_TYPE
-        self.thread['usage'].append({
+        self.conversation['usage'].append({
             "type":"search",
             "model":openai_model,
             "prompt_tokens": response.usage.prompt_tokens,
@@ -118,7 +118,7 @@ class ChatHandler:
             "choice":response.choices[0].model_dump(),
             "usage": response.usage.model_dump(),
         }
-        self.thread['usage'].append({
+        self.conversation['usage'].append({
             "type":"search",
             "model":CHAT_MODEL,
             "prompt_tokens": response.usage.prompt_tokens,
@@ -129,33 +129,33 @@ class ChatHandler:
         )
         await self.update_history()
         print("History updated")
-        return self.thread
+        return self.conversation
 
     async def init_history(self):
-        '''Retrieves the thread from the database and sets the thread attribute.'''
-        self.thread = await self.threadsCosmosClient.get_by_id(
-            self.topicId, self.threadId
+        '''Retrieves the conversation from the database and sets the conversation attribute.'''
+        self.conversation = await self.conversationsCosmosClient.get_by_id(
+            self.topicId, self.conversationId
         )
-        self.thread["messages"] = self.thread.get("messages", [])
-        return self.thread["messages"]
+        self.conversation["messages"] = self.conversation.get("messages", [])
+        return self.conversation["messages"]
 
     async def update_history(self):
         
-        thread = {}
-        for k in self.thread.keys():
+        conversation = {}
+        for k in self.conversation.keys():
             if k.startswith("_"):
                 continue 
             if k=='createdAt':
                 continue
-            thread[k] = self.thread[k]
+            conversation[k] = self.conversation[k]
                 
-        thread["messages"]= [m.to_dict() for m in self.get_messages()]
-        thread["updatedAt"] = datetime.utcnow().isoformat()
-        self.thread = thread
+        conversation["messages"]= [m.to_dict() for m in self.get_messages()]
+        conversation["updatedAt"] = datetime.utcnow().isoformat()
+        self.conversation = conversation
 
         try:
-            self.thread = await self.threadsCosmosClient.upsert(self.thread)
+            self.conversation = await self.conversationsCosmosClient.upsert(self.conversation)
         except Exception as e:
-            print("Error updating thread")
+            print("Error updating conversation")
             print(e)
         return
