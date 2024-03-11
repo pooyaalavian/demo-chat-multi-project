@@ -1,8 +1,10 @@
-from app.src.cosmos_utils.conversations_client import ConversationCosmosClient
+from src.cosmos_utils.conversations_client import ConversationCosmosClient
 from openai import AsyncAzureOpenAI
 import os
+import re 
+import json
 from datetime import datetime
-from src.ai_search import search_vector, search_semantic, search_hybrid 
+from src.ai_search import search_vector, search_semantic, search_hybrid , get_index_client
 from src.embedding import get_content_embedding
 from .messages import UserMessage, SystemMessage, SourceMessage, AssistantMessage, message_maker
 
@@ -37,6 +39,7 @@ class ChatHandler:
         self.topicId = topicId
         self.conversationId = conversationId
         self.new_messages = [message_maker(recent_user_message)]
+        self.finished = False
 
     def get_messages(self, return_human=True, return_assistant=True, return_search_assistant=True):
         '''Returns all messages in the history plus all messages created so far (but not saved yet). 
@@ -54,6 +57,13 @@ class ChatHandler:
         return msgs
 
     async def get_context(self):
+        try:
+            _client = get_index_client()
+            index_name = f'idx-{self.topicId}'
+            _client.get_index(index_name)
+        except:
+            print("No search client found. Exiting...")
+            return
         openai_model = CHAT_MODEL
         messages = self.get_messages(return_search_assistant=False)
         my_messages = [message_maker({"content":GET_CONTEXT_PROMPT, "role":"system"})] + messages
@@ -62,9 +72,37 @@ class ChatHandler:
             messages=my_messages,
             model=openai_model,
             max_tokens=750,
-            temperature=0.7,
+            temperature=0.2,
+            response_format={'type':'json_object'}
         )
         self.context_query = response.choices[0].message.content
+        try:
+            parsed_result = json.loads(self.context_query)
+        except:
+            print("Error parsing context query")
+            print(self.context_query)
+            return
+        if parsed_result.get('response','') == 'request_info':
+            self.new_messages.append(AssistantMessage(
+                content=parsed_result.get('message','Please clarify'),
+                agent="search-assistant",
+                metadata={
+                    'input':self.context_query,
+                    'agent':'search-assistant',
+                },
+            ))
+            self.finished = True
+            return  
+        if parsed_result.get('response','') != 'query':
+            print('Invalid response')
+            print(parsed_result)
+            return
+        
+        query = parsed_result.get('query','')
+        vector_text = parsed_result.get('question','')
+        print("Query:", query)
+        print("Vector Text:", vector_text)
+                
         search_type = SEARCH_TYPE
         self.conversation['usage'].append({
             "type":"search",
@@ -74,13 +112,13 @@ class ChatHandler:
         })
         
         if search_type == 'vector':
-            vector = await get_content_embedding(self.context_query)
+            vector = await get_content_embedding(vector_text)
             _results = search_vector(self.topicId, vector, top_n=TOP_N)
         elif search_type == 'semantic':
-            _results = search_semantic(self.topicId, self.context_query, top_n=TOP_N)
+            _results = search_semantic(self.topicId, query, top_n=TOP_N)
         elif search_type == 'hybrid':
-            vector = await get_content_embedding(self.context_query)
-            _results = search_hybrid(self.topicId, vector, self.context_query, top_n=TOP_N)
+            vector = await get_content_embedding(vector_text)
+            _results = search_hybrid(self.topicId, vector, query, top_n=TOP_N)
 
         results = []
         count = 0
@@ -104,7 +142,14 @@ class ChatHandler:
         print("History initialized")
         await self.get_context()
         print("Context retrieved")
-        
+        if not self.finished:
+            await self.generate_reply()
+            print("Reply generated")
+        await self.update_history()
+        print("History updated")
+        return self.conversation
+
+    async def generate_reply(self):
         messages = [SystemMessage(content=MAIN_PROMPT)] + self.get_messages()
         messages = [m.to_llm() for m in messages]
         
@@ -124,13 +169,12 @@ class ChatHandler:
             "prompt_tokens": response.usage.prompt_tokens,
             "completion_tokens": response.usage.completion_tokens,
         })
+        content, references = await self.transform_response(response.choices[0].message.content)
         self.new_messages.append(
-            AssistantMessage(content=response.choices[0].message.content, metadata=metadata)
+            AssistantMessage(content=content,references=references, metadata=metadata)
         )
-        await self.update_history()
-        print("History updated")
-        return self.conversation
-
+        self.finished = True
+    
     async def init_history(self):
         '''Retrieves the conversation from the database and sets the conversation attribute.'''
         self.conversation = await self.conversationsCosmosClient.get_by_id(
@@ -139,6 +183,18 @@ class ChatHandler:
         self.conversation["messages"] = self.conversation.get("messages", [])
         return self.conversation["messages"]
 
+    async def transform_response(self, response:str):
+        references = []
+        matches = re.findall(f'<ref id="([^"]*)"/>', response)
+        for match in matches:
+            if match in references:
+                continue
+            references.append(match)
+            idx = len(references)
+            response = response.replace(f'<ref id="{match}"/>', f'^{idx}^')
+        print(matches)
+        return response, references
+    
     async def update_history(self):
         
         conversation = {}
