@@ -1,6 +1,6 @@
 import { environment } from "../environment";
 import { File } from "../types/file";
-import { Thread } from "../types/thread";
+import { Conversation } from "../types/conversation";
 import { Topic } from "../types/topic";
 import { acquireTokens } from "./msal";
 
@@ -30,16 +30,16 @@ export const fetchTopic = async (topicId: string) => {
     return wrappedFetch<Topic>(`/topics/${topicId}`, { method: 'GET' });
 }
 
-export const fetchThreads = async (topicId: string) => {
-    return wrappedFetch<Thread[]>(`/topics/${topicId}/threads/`, { method: 'GET' });
+export const fetchConversations = async (topicId: string) => {
+    return wrappedFetch<Conversation[]>(`/topics/${topicId}/conversations/`, { method: 'GET' });
 }
 
-export const fetchThread = async (topicId: string, threadId: string) => {
-    return wrappedFetch<Thread>(`/topics/${topicId}/threads/${threadId}`, { method: 'GET' });
+export const fetchConversation = async (topicId: string, conversationId: string) => {
+    return wrappedFetch<Conversation>(`/topics/${topicId}/conversations/${conversationId}`, { method: 'GET' });
 }
 
-export const sendThreadChat = async (topicId: string, threadId: string, message: string) => {
-    return wrappedFetch<Thread>(`/topics/${topicId}/threads/${threadId}/chat`,
+export const sendConversationChat = async (topicId: string, conversationId: string, message: string) => {
+    return wrappedFetch<Conversation>(`/topics/${topicId}/conversations/${conversationId}/chat`,
         {
             method: 'POST', body: JSON.stringify({ message })
         });
@@ -61,14 +61,14 @@ export const createTopic = async (body: { name: string; description: string }) =
     return wrappedFetch<Topic>('/topics/', { method: 'POST', body: JSON.stringify(body) });
 }
 
-export const createThread = async (topicId: string, body: { name: string; description: string }) => {
-    return wrappedFetch<Thread>(`/topics/${topicId}/threads/`,
+export const createConversation = async (topicId: string, body: { name: string; description: string }) => {
+    return wrappedFetch<Conversation>(`/topics/${topicId}/conversations/`,
         { method: 'POST', body: JSON.stringify(body) }
     );
 }
 
-export const deleteThread = async (topicId: string, threadId: string) => {
-    return wrappedFetch<object>(`/topics/${topicId}/threads/${threadId}`, { method: 'DELETE' });
+export const deleteConversation = async (topicId: string, conversationId: string) => {
+    return wrappedFetch<object>(`/topics/${topicId}/conversations/${conversationId}`, { method: 'DELETE' });
 }
 
 export const deleteTopic = async (topicId: string) => {

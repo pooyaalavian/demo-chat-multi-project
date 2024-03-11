@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { BaseSyntheticEvent, useState, } from "react";
 import { BackToTopic } from '../topics/BackToTopic';
-import { createThread } from '../../api/internal';
+import { createConversation } from '../../api/internal';
 
 
-export const NewThread = () => {
+export const NewConversation = () => {
     const [error, setError] = useState('');
     const { topicId } = useParams();
     const navigate = useNavigate();
@@ -18,9 +18,9 @@ export const NewThread = () => {
         const description = event.target.querySelector('#description').value;
         const body = { name, description };
         try{
-            const res = await createThread(topicId, body);
+            const res = await createConversation(topicId, body);
             console.log(res);
-            navigate(`/topics/${topicId}/threads/${res.id}`);
+            navigate(`/topics/${topicId}/conversations/${res.id}`);
         }
         catch(e){
             setError((e as Error).message);

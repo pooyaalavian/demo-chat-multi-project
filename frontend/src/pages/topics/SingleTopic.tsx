@@ -1,8 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { ReactNode, useEffect, useState } from "react";
-import { deleteThread, fetchBlobSasToken, fetchFiles, fetchThreads, fetchTopic } from '../../api/internal';
+import { deleteConversation, fetchBlobSasToken, fetchFiles, fetchConversations, fetchTopic } from '../../api/internal';
 import { File } from '../../types/file';
-import { Thread } from '../../types/thread';
+import { Conversation } from '../../types/conversation';
 import { TopicUser, } from '../../types/user';
 import { Topic } from '../../types/topic';
 import { DeleteIcon, FileSymlinkIcon } from '@fluentui/react-icons-mdl2';
@@ -39,23 +39,23 @@ const FilePanel = ({ file, topicId }: { file: File, topicId: string }) => {
     </div>)
 };
 
-const ThreadPanel = ({ thread, topicId, onDelete }: { thread: Thread; onDelete: () => void; topicId: string }) => {
+const ConversationPanel = ({ conversation, topicId, onDelete }: { conversation: Conversation; onDelete: () => void; topicId: string }) => {
 
     return (<div className='mb-2'>
         <div className="bg-slate-100 p-1">
             <div className="flex">
                 <div className="flex-1">
-                    <Link to={`/topics/${topicId}/threads/${thread.id}`}>
+                    <Link to={`/topics/${topicId}/conversations/${conversation.id}`}>
                         <div className="">
-                            {thread.name}
-                            {!thread.messages.length && <span className="text-xs text-gray-500"> (No messages yet)</span>}
-                            {thread.messages.length > 0 && <span className="text-xs text-gray-500"> (last updated {new Date(thread.messages[thread.messages.length - 1].timestamp).toLocaleString()})</span>}
+                            {conversation.name}
+                            {!conversation.messages.length && <span className="text-xs text-gray-500"> (No messages yet)</span>}
+                            {conversation.messages.length > 0 && <span className="text-xs text-gray-500"> (last updated {new Date(conversation.messages[conversation.messages.length - 1].timestamp).toLocaleString()})</span>}
                         </div>
-                        {thread.description && <p className='text-sm text-gray-600'>{thread.description}</p>}
+                        {conversation.description && <p className='text-sm text-gray-600'>{conversation.description}</p>}
                     </Link>
                 </div>
                 <div className="flex-0">
-                    <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={onDelete} title={`Delete ${thread.name}`}>
+                    <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={onDelete} title={`Delete ${conversation.name}`}>
                         <DeleteIcon />
                     </button>
                 </div>
@@ -117,22 +117,22 @@ const Panel = ({ children, title, actionBtn }: PanelProps) => {
 export const SingleTopic = () => {
     const { topicId } = useParams();
     const [topic, setTopic] = useState<Topic | null>(null);
-    const [threads, setThreads] = useState<Thread[]>([]);
+    const [conversations, setConversations] = useState<Conversation[]>([]);
     const [files, setFiles] = useState<File[]>([]);
 
     useEffect(() => {
         if (topicId) {
-            fetchThreads(topicId).then((data) => setThreads(data));
+            fetchConversations(topicId).then((data) => setConversations(data));
             fetchFiles(topicId).then((data) => setFiles(data));
         }
     }, [topicId]);
 
-    const handleThreadDelete = (threadId: string) => {
+    const handleConversationDelete = (conversationId: string) => {
         if (!topicId) return;
-        console.log('Delete thread');
-        deleteThread(topicId, threadId).then((data) => {
+        console.log('Delete conversation');
+        deleteConversation(topicId, conversationId).then((data) => {
             console.log(data);
-            fetchThreads(topicId).then((data) => setThreads(data));
+            fetchConversations(topicId).then((data) => setConversations(data));
         });
     }
     useEffect(() => {
@@ -144,8 +144,8 @@ export const SingleTopic = () => {
 
     const handleExportChatHistory = () => {
         const data: unknown[] = [];
-        threads.forEach((thread) => {
-            thread.messages.forEach((message) => {
+        conversations.forEach((conversation) => {
+            conversation.messages.forEach((message) => {
                 if (message.role === 'user' && message.agent === 'search-assistant') return;
                 const name = (message.role === 'user' && message.agent === 'human') ? message.name : 'AI';
                 const resources: string[] = [];
@@ -158,7 +158,7 @@ export const SingleTopic = () => {
                     }
                 }
                 data.push({
-                    Thread: thread.name,
+                    Conversation: conversation.name,
                     Timestamp: '"' + new Date(message.timestamp).toLocaleString() + '"',
                     From: name,
                     Content: '"' + message.content.replace(/"/g, '""').replace(/,/g, ',') + '"',
@@ -166,7 +166,7 @@ export const SingleTopic = () => {
                 });
             });
         });
-        const cols = ['Thread', 'Timestamp', 'From', 'Content', 'Resources'];
+        const cols = ['Conversation', 'Timestamp', 'From', 'Content', 'Resources'];
         const csv = cols.join(',') + '\n' + data.map((row: any) => cols.map(c => row[c]).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
@@ -191,8 +191,8 @@ export const SingleTopic = () => {
                         </Panel>
                     </div>
                     <div className=" flex-1">
-                        <Panel title="Threads" actionBtn={{ to: `/topics/${topicId}/threads/new`, title: 'Start a New Thread' }}>
-                            {topicId && threads.map((thread, id) => <ThreadPanel thread={thread} key={id} onDelete={() => handleThreadDelete(thread.id)} topicId={topicId} />)}
+                        <Panel title="Conversations" actionBtn={{ to: `/topics/${topicId}/conversations/new`, title: 'Start a New Conversation' }}>
+                            {topicId && conversations.map((conversation, id) => <ConversationPanel conversation={conversation} key={id} onDelete={() => handleConversationDelete(conversation.id)} topicId={topicId} />)}
                             <div className="border-t border-gray-400 pt-2">
                                 <button onClick={handleExportChatHistory}
                                     className="p-1 rounded-sm bg-whiteborder border-blue-800 text-blue-800 cursor-pointer hover:bg-sky-500 hover:text-white">

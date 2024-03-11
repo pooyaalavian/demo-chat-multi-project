@@ -3,10 +3,10 @@ import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import './App.css';
 import { TopicHome } from './pages/topics/Topic';
 import { SingleTopic } from './pages/topics/SingleTopic';
-import { SingleThread } from './pages/threads/SingleThread';
+import { SingleConversation } from './pages/conversations/SingleConversation';
 import { SingleFile } from './pages/files/SingleFile';
 import { NewTopic } from './pages/topics/NewTopic';
-import { NewThread } from './pages/threads/NewThread';
+import { NewConversation } from './pages/conversations/NewConversation';
 import { NewFile } from './pages/files/NewFile';
 import { NewUser } from './pages/users/NewUser';
 import { MsalProvider } from '@azure/msal-react';
@@ -66,8 +66,8 @@ function App({ instance }: { instance: PublicClientApplication }) {
             <Routes>
               <Route path="/topics/:topicId/files/new" element={<NewFile />} />
               <Route path="/topics/:topicId/files/:fileId" element={<SingleFile />} />
-              <Route path="/topics/:topicId/threads/new" element={<NewThread />} />
-              <Route path="/topics/:topicId/threads/:threadId" element={<SingleThread />} />
+              <Route path="/topics/:topicId/conversations/new" element={<NewConversation />} />
+              <Route path="/topics/:topicId/conversations/:conversationId" element={<SingleConversation />} />
               <Route path="/topics/new" element={<NewTopic />} />
               <Route path="/topics/:topicId" element={<SingleTopic />} />
               <Route path="/topics" element={<TopicHome />} />

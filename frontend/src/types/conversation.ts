@@ -27,9 +27,9 @@ export interface AiAssistantMessage {
 
 export type AnyMessage = HumanMessage | SearchUserMessage | AiAssistantMessage;
 
-export interface Thread {
+export interface Conversation {
     id: string;
-    type: 'thread';
+    type: 'conversation';
     topicId: string;
     name: string;
     description: string;

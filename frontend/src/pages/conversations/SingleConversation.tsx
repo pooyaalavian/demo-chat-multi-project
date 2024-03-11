@@ -1,9 +1,9 @@
 import { useParams } from 'react-router-dom';
 import { BaseSyntheticEvent, useEffect, useRef, useState } from "react";
 import { BackToTopic } from '../topics/BackToTopic';
-import { fetchThread, sendThreadChat } from '../../api/internal';
+import { fetchConversation, sendConversationChat } from '../../api/internal';
 import { ChatMessage } from './chat-message';
-import { Thread } from '../../types/thread';
+import { Conversation } from '../../types/conversation';
 import { SendIcon } from '@fluentui/react-icons-mdl2';
 import { useAccount } from '@azure/msal-react';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -16,40 +16,40 @@ const EmptyArea = () => {
     </div>
 }
 
-export const SingleThread = () => {
-    const { topicId, threadId } = useParams();
-    const [thread, setThread] = useState<Thread | null>(null);
+export const SingleConversation = () => {
+    const { topicId, conversationId } = useParams();
+    const [conversation, setConversation] = useState<Conversation | null>(null);
     const [thinking, setThinking] = useState(false);
     const chatPanel = useRef<HTMLDivElement>(null);
     const account = useAccount();
 
     useEffect(() => {
-        if (topicId && threadId) {
-            console.log('fetching thread');
-            fetchThread(topicId, threadId).then((data) => {
-                setThread(data);
+        if (topicId && conversationId) {
+            console.log('fetching conversation');
+            fetchConversation(topicId, conversationId).then((data) => {
+                setConversation(data);
                 console.log(data);
                 if (chatPanel.current) {
                     chatPanel.current.scrollIntoView({ behavior: "smooth" });
                 }
             });
         }
-    }, [topicId, threadId]);
+    }, [topicId, conversationId]);
 
     const sendChat = async (event: BaseSyntheticEvent) => {
         event.preventDefault();
         console.log(event);
         if (!topicId) return console.error('No topicId');
-        if (!threadId) return console.error('No threadId');
-        if (!thread) return console.error('No thread');
+        if (!conversationId) return console.error('No conversationId');
+        if (!conversation) return console.error('No conversation');
 
         const message = event.target.querySelector('#message').innerText;
         setThinking(true);
         event.target.querySelector('#message').innerText = '';
-        setThread({
-            ...thread,
+        setConversation({
+            ...conversation,
             messages: [
-                ...thread.messages,
+                ...conversation.messages,
                 { role: 'user', agent: 'human',
                  userId: account?.localAccountId||'', 
                  name: `${account?.idTokenClaims?.given_name} ${account?.idTokenClaims?.family_name}`||'Me', 
@@ -58,15 +58,15 @@ export const SingleThread = () => {
                 },
             ]
         });
-        const res = await sendThreadChat(topicId, threadId, message);
-        setThread(res);
+        const res = await sendConversationChat(topicId, conversationId, message);
+        setConversation(res);
         setThinking(false);
     };
 
-    const prompt_tokens = thread?.usage?.map(u => u.prompt_tokens).reduce((a, b) => a + b, 0);
-    const completion_tokens = thread?.usage?.map(u => u.completion_tokens).reduce((a, b) => a + b, 0);
+    const prompt_tokens = conversation?.usage?.map(u => u.prompt_tokens).reduce((a, b) => a + b, 0);
+    const completion_tokens = conversation?.usage?.map(u => u.completion_tokens).reduce((a, b) => a + b, 0);
 
-    if (!thread) return (<LoadingSpinner/>);
+    if (!conversation) return (<LoadingSpinner/>);
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
         if (event.key === 'Enter' && !event.shiftKey) {
@@ -84,11 +84,11 @@ export const SingleThread = () => {
         <BackToTopic topicId={topicId} />
         <div className="flex flex-col  flex-auto">
             <div className="flex-none h-16">
-                <h1>Thread: {thread ? thread.name : '...'}</h1>
+                <h1>Conversation: {conversation ? conversation.name : '...'}</h1>
             </div>
             <div className="flex-grow overflow-y-auto overflow-x-hidden">
-                {(!thread.messages || thread.messages.length == 0) && <EmptyArea />}
-                {thread.messages && thread.messages.map((m, id) => <ChatMessage key={id} message={m} />)}
+                {(!conversation.messages || conversation.messages.length == 0) && <EmptyArea />}
+                {conversation.messages && conversation.messages.map((m, id) => <ChatMessage key={id} message={m} />)}
                 {thinking && <LoadingBar/>}
             </div>
             <div className="flex-none " ref={chatPanel}>

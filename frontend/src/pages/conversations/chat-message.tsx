@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AiAssistantMessage, AnyMessage, HumanMessage, SearchUserMessage } from "../../types/thread";
+import { AiAssistantMessage, AnyMessage, HumanMessage, SearchUserMessage } from "../../types/conversation";
 import Markdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
 import { Avatar } from "../../components/Avatar";
