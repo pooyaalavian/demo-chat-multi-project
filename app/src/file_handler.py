@@ -1,5 +1,10 @@
 from src.cosmos_utils.files_client import TopicFilesCosmosClient
-from src.doc_intelligence import doc_intelligence_process_doc, json_to_analyze_result
+from src.doc_intelligence import (
+    doc_intelligence_process_doc_url, 
+    json_to_analyze_result, 
+    doc_intelligence_get_pages_url,
+    AnalyzeResult,
+)
 import json
 import os
 import re
@@ -26,6 +31,7 @@ from src.ai_search import (
 
 MAX_CHUNK_LENGTH = 4000
 OVERLAP_WINDOW = 100
+PAGES_PER_BATCH = int(os.getenv("AZURE_DOC_INTELLIGENCE_PAGES_BATCH", "30"))
 
 
 class FileHandler:
@@ -41,14 +47,18 @@ class FileHandler:
         
         self.file_local_path = f'tmp/{self.topicId}/{self.filename}{self.fileext}'
         self.file_blob_path = f"{self.topicId}/raw/{self.filename}{self.fileext}"
-        self.doc_intel_local_path = f'tmp/{self.topicId}/{self.filename}.json'
-        self.doc_intel_blob_path = f'{self.topicId}/doc_intel/{self.filename}.json'
+        self.doc_intel_local_path = f'tmp/{self.topicId}/{self.filename}'
+        self.doc_intel_blob_path = f'{self.topicId}/doc_intel/{self.filename}'
         
         self.paragraph_chunks_local_path = f'tmp/{self.topicId}/{self.filename}.paragraphs.chunks.jsonl'
         self.table_chunks_local_path = f'tmp/{self.topicId}/{self.filename}.tables.chunks.jsonl'
 
         self.logs = []
         self.progress = []
+        os.makedirs(self.doc_intel_local_path, exist_ok=True)
+    
+    def get_blob_url(self, blob_path):
+        return f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{blob_path}"
     
     async def add_progress(self, step:str, success:bool, message:str, patches:list=[]):
         progress = {
@@ -78,7 +88,9 @@ class FileHandler:
     
     async def cleanup_tmp_files(self):
         os.remove(self.file_local_path)
-        os.remove(self.doc_intel_local_path)
+        for file in os.listdir(self.doc_intel_local_path):
+            os.remove(f"{self.doc_intel_local_path}/{file}")
+        os.removedirs(self.doc_intel_local_path)
         os.remove(self.paragraph_chunks_local_path)
         os.remove(self.table_chunks_local_path)
         return self.log(inspect.currentframe().f_code.co_name, f"Cleaned up tmp files.")
@@ -136,7 +148,7 @@ class FileHandler:
             
         except Exception as e:
             self.log(inspect.currentframe().f_code.co_name, f"Error: {e}")
-            self.add_progress('error', False, f"Error: {e}",
+            await self.add_progress('error', False, f"Error: {e}",
                 patches=[{'op': 'add', 'path': '/processed', 'value': True}])
         finally:
             for log in self.logs:
@@ -148,6 +160,7 @@ class FileHandler:
             "topicId": self.topicId,
             "filename": self.original_filename,
             "uploaderId": self.user['userId'],
+            "doc_intel": [],
             "progress":[],
             "processed": False,
             "file": f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.file_blob_path}",
@@ -172,123 +185,152 @@ class FileHandler:
         return self.log(inspect.currentframe().f_code.co_name, f"Uploaded {src_path} to {blob_path}")
 
     async def call_doc_intelligence(self):
-        result = doc_intelligence_process_doc(self.file_local_path)
-        with open(self.doc_intel_local_path, "w") as f:
-            json.dump(result.to_dict(), f, indent=4)
-        self.analyze_result = result
-        await self.add_progress("process_doc_intelligence", True, f"Doc. Intelligence processed the document", 
+        sas = await self.fileClient.generate_container_sas()
+        url = f"{self.get_blob_url(self.file_blob_path)}?{sas}"
+        numPages = await doc_intelligence_get_pages_url(url)
+        DELTA = PAGES_PER_BATCH
+        batch = 0
+        min_page = 1
+        max_page = min_page + DELTA - 1
+        self.analyze_result: list[AnalyzeResult] = []
+        while min_page <= numPages:
+            result = await doc_intelligence_process_doc_url(url, pages=f"{min_page}-{max_page}")
+            with open(f"{self.doc_intel_local_path}/{batch}.json", "w") as f:
+                json.dump(result.to_dict(), f, indent=4)
+            self.analyze_result.append(result)
+
+            min_page = max_page + 1
+            max_page = min(min_page + DELTA - 1, numPages)
+            batch += 1
+        
+        # result = await doc_intelligence_process_doc_url(url, pages="50-51")
+        # result = await doc_intelligence_process_doc(self.file_local_path)
+        # with open(self.doc_intel_local_path, "w") as f:
+        #     json.dump(result.to_dict(), f, indent=4)
+        # self.analyze_result = result
+
+        await self.add_progress("process_doc_intelligence", True, f"Doc. Intelligence processed the document in {batch} batches.", 
             patches=[]
         )
         return self.log(inspect.currentframe().f_code.co_name, f"Called Doc. Intelligence local")
 
     async def upload_doc_to_blob(self, src_path, blob_path):
-        with open(src_path, "rb") as f:
-            await self.fileClient.upload_file(self.topicId, blob_path, f.read(), self.original_filename)
-        await self.add_progress("upload_doc_intelligence", True, f"Uploaded {src_path} to {blob_path}", 
-            patches=[{"op": "add", "path": "/doc_intel", "value": f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.doc_intel_blob_path}"}]
-            )
+        # get all files in dir
+        files = os.listdir(src_path)
+
+        for file in files:
+            src = f"{src_path}/{file}"
+            dst = f"{blob_path}/{file}"
+            with open(src, "rb") as f:
+                await self.fileClient.upload_file(self.topicId, dst, f.read(), self.original_filename)
+
+                await self.add_progress("upload_doc_intelligence", True, f"Uploaded {src} to {dst}", 
+                    patches=[{"op": "add", "path": "/doc_intel/-", "value": f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{dst}"}]
+                )
+        
         return self.log(inspect.currentframe().f_code.co_name, f"Uploaded {src_path} to {blob_path}")
 
     async def perform_chunking(self):
-        results = self.analyze_result
         paragraph_chunks = []
+        table_chunks = []
         current_chunk = ""
         current_title = ""
         chunk_start_page = 1
         truncatedStart = False
         truncatedEnd = False
-
-        for paragraph in results.paragraphs:
-            role = paragraph.role
-            if role in ["pageHeader", "pageFooter", "pageNumber"]:
-                continue
-            if role in ["title", "sectionHeading"]:
-                if current_chunk:
-                    paragraph_chunks.append(
-                        {
-                            "content": current_chunk,
-                            "type": "paragraph",
-                            "pageNumber": chunk_start_page,
-                            "truncatedStart": truncatedStart,
-                            "truncatedEnd": False,
-                        }
-                    )
-                    truncatedStart = False
-                    truncatedEnd = False
-                chunk_start_page = paragraph.bounding_regions[0].page_number
-                current_chunk = paragraph.content + "\n"
-                current_title = paragraph.content
-                continue
-            else:
-                current_chunk += paragraph.content + "\n"
-                if len(current_chunk) > MAX_CHUNK_LENGTH:
-                    chunk1, chunk2 = (
-                        current_chunk[:MAX_CHUNK_LENGTH],
-                        current_chunk[MAX_CHUNK_LENGTH - OVERLAP_WINDOW :],
-                    )
-                    truncatedEnd = True
-                    paragraph_chunks.append(
-                        {
-                            "content": chunk1,
-                            "type": "paragraph",
-                            "pageNumber": chunk_start_page,
-                            "truncatedStart": truncatedStart,
-                            "truncatedEnd": truncatedEnd,
-                        }
-                    )
-                    truncatedStart = True
-                    current_chunk = current_title + "\n..." + chunk2
-                    # do we need to?
+        for results in self.analyze_result:
+            for paragraph in results.paragraphs:
+                role = paragraph.role
+                if role in ["pageHeader", "pageFooter", "pageNumber"]:
+                    continue
+                if role in ["title", "sectionHeading"]:
+                    if current_chunk:
+                        paragraph_chunks.append(
+                            {
+                                "content": current_chunk,
+                                "type": "paragraph",
+                                "pageNumber": chunk_start_page,
+                                "truncatedStart": truncatedStart,
+                                "truncatedEnd": False,
+                            }
+                        )
+                        truncatedStart = False
+                        truncatedEnd = False
                     chunk_start_page = paragraph.bounding_regions[0].page_number
+                    current_chunk = paragraph.content + "\n"
+                    current_title = paragraph.content
+                    continue
+                else:
+                    current_chunk += paragraph.content + "\n"
+                    if len(current_chunk) > MAX_CHUNK_LENGTH:
+                        chunk1, chunk2 = (
+                            current_chunk[:MAX_CHUNK_LENGTH],
+                            current_chunk[MAX_CHUNK_LENGTH - OVERLAP_WINDOW :],
+                        )
+                        truncatedEnd = True
+                        paragraph_chunks.append(
+                            {
+                                "content": chunk1,
+                                "type": "paragraph",
+                                "pageNumber": chunk_start_page,
+                                "truncatedStart": truncatedStart,
+                                "truncatedEnd": truncatedEnd,
+                            }
+                        )
+                        truncatedStart = True
+                        current_chunk = current_title + "\n..." + chunk2
+                        # do we need to?
+                        chunk_start_page = paragraph.bounding_regions[0].page_number
+        
+        for results in self.analyze_result:
+            for table in results.tables:
+                rows = table.row_count
+                cols = table.column_count
+                data = [[] for _ in range(rows)]
+                # 3 rows 4 cols
+                # data = [
+                #     ['','','',''],
+                #     ['','','',''],
+                #     ['','','',''],
+                # ]
+                for row in data:
+                    for j in range(cols):
+                        row.append("")
 
-        table_chunks = []
-
-        for table in results.tables:
-            rows = table.row_count
-            cols = table.column_count
-            data = [[] for _ in range(rows)]
-            # 3 rows 4 cols
-            # data = [
-            #     ['','','',''],
-            #     ['','','',''],
-            #     ['','','',''],
-            # ]
-            for row in data:
-                for j in range(cols):
-                    row.append("")
-
-            for cell in table.cells:
-                data[cell.row_index][cell.column_index] = (
-                    cell.content if cell.content else ""
-                )
-                # replace all new line characters with space
-                data[cell.row_index][cell.column_index] = data[cell.row_index][
-                    cell.column_index
-                ].replace("\n", " ").replace(":unselected:","").replace(":selected:","[x]")
-
-            table_in_markdown = ""
-            for row in data:
-                this_row = " | ".join(row) + "\n"
-                if len(table_in_markdown) + len(this_row) > MAX_CHUNK_LENGTH:
-                    table_chunks.append(
-                        {
-                            "content": table_in_markdown,
-                            "type": "table",
-                            "pageNumber": table.bounding_regions[0].page_number,
-                        }
+                for cell in table.cells:
+                    data[cell.row_index][cell.column_index] = (
+                        cell.content if cell.content else ""
                     )
-                    table_in_markdown = ''
-                table_in_markdown += this_row
+                    # replace all new line characters with space
+                    data[cell.row_index][cell.column_index] = data[cell.row_index][
+                        cell.column_index
+                    ].replace("\n", " ").replace(":unselected:","").replace(":selected:","[x]")
 
-            table_chunks.append(
-                {
-                    "content": table_in_markdown,
-                    "type": "table",
-                    "pageNumber": table.bounding_regions[0].page_number,
-                }
-            )
+                table_in_markdown = ""
+                for row in data:
+                    this_row = " | ".join(row) + "\n"
+                    if len(table_in_markdown) + len(this_row) > MAX_CHUNK_LENGTH:
+                        table_chunks.append(
+                            {
+                                "content": table_in_markdown,
+                                "type": "table",
+                                "pageNumber": table.bounding_regions[0].page_number,
+                            }
+                        )
+                        table_in_markdown = ''
+                    table_in_markdown += this_row
+
+                table_chunks.append(
+                    {
+                        "content": table_in_markdown,
+                        "type": "table",
+                        "pageNumber": table.bounding_regions[0].page_number,
+                    }
+                )
+        
         self.paragraph_chunks = paragraph_chunks
         self.table_chunks = table_chunks
+        
         await self.add_progress("perform_chunking", True, f"Created {len(paragraph_chunks)} paragraph chunks and {len(table_chunks)} table chunks. ", 
             patches=[]
         )

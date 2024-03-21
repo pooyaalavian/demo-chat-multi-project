@@ -35,6 +35,7 @@ const Progress = ({ step, progress }: { step: string; progress: FileProgress[] }
     const item = progress.find((p) => p.step === step);
     const success = item?.success;
     const statusColor = success ? 'bg-green-600' : 'bg-gray-200';
+    const niceStep = step.split('_').map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
     return <div className="flex">
         <div className="flex-0 w-16 relative h-12">
             <div className="absolute border-r border-gray-400 h-12 w-6 left-0 z-10"></div>
@@ -45,7 +46,7 @@ const Progress = ({ step, progress }: { step: string; progress: FileProgress[] }
             </div>
         </div>
         <div className="flex-1 p-1 h-12 text-ellipsis overflow-hidden">
-            <div className="text-xl h-6">{step}</div>
+            <div className="text-xl h-6">{niceStep}</div>
             <div className="text-sm h-6 text-ellipsis overflow-hidden text-gray-400">{item?.message}</div>
         </div>
     </div>
