@@ -1,7 +1,7 @@
-import { useParams, } from 'react-router-dom';
+import { useNavigate, useParams, } from 'react-router-dom';
 import { useEffect, useState, } from "react";
 import { BackToTopic } from '../topics/BackToTopic';
-import { fetchFile } from '../../api/internal';
+import { deleteFile, fetchFile } from '../../api/internal';
 import { File, FileProgress } from '../../types/file';
 import { LoadingBar } from '../../components/LoadingBar';
 import { PDFIcon, SkypeCheckIcon, TextDocumentIcon } from '@fluentui/react-icons-mdl2';
@@ -55,6 +55,9 @@ export const SingleFile = () => {
     const { topicId, fileId } = useParams();
     const [file, setFile] = useState<File | null>(null);
     const [refresh, setRefresh] = useState(0);
+    const [deleteDisabled, setDeleteDisabled] = useState(false);
+    const navigate = useNavigate();
+
 
     useEffect(() => {
         async function getFile(topicId?: string, fileId?: string) {
@@ -65,10 +68,18 @@ export const SingleFile = () => {
             }
         }
         getFile(topicId, fileId).then((p) => {
-            if (!p) setTimeout(() => setRefresh(r => r + 1), 1000);
+            if (!p) setTimeout(() => setRefresh(r => r + 1), 5000);
         });
 
     }, [topicId, fileId, refresh]);
+
+    const deleteMyFile = async () => {
+        if (!topicId || !fileId) return;
+        setDeleteDisabled(true);
+        await deleteFile(topicId, fileId);
+        setDeleteDisabled(false);
+        navigate(`/topics/${topicId}`);
+    }
 
     if (!topicId || !fileId || !file) return <LoadingBar />
     return <>
@@ -81,7 +92,16 @@ export const SingleFile = () => {
                 <div className="text-lg">File progress</div>
                 <div className="progress-container">
                     {STEPS.map((step, id) => <Progress key={id} step={step} progress={file.progress} />)}
-
+                </div>
+                <div className="flex flex-row">
+                    <div className="flex-1"></div>
+                    <div className="flex-0">
+                        <button className="btn bg-red-700 text-white p-2 rounded-md hover:bg-red-600"
+                        disabled={deleteDisabled}
+                        onClick={deleteMyFile}>
+                            {deleteDisabled?'...':'Delete this file'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

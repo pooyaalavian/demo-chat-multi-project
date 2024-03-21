@@ -216,3 +216,10 @@ def search_hybrid(topicId:str, query:str, vector:list[float],*, top_n:int=5):
         ],
     )
     return results
+
+
+def delete_records_by_id(topicId:str, recordIds:list[str]):
+    index_name = f'idx-{topicId}'
+    client = get_search_client(index_name)
+    records = [ {"id": recordId, "@search.action": "delete"} for recordId in recordIds]
+    return client.delete_documents(records)

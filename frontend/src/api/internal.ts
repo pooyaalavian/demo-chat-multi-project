@@ -89,6 +89,10 @@ export const createFile = async (topicId: string, filename: string, data:ArrayBu
 
 }
 
+export const deleteFile = async (topicId: string, fileId: string) => {
+    return wrappedFetch<object>(`/topics/${topicId}/files/${fileId}`, { method: 'DELETE' });
+}
+
 export const createUser = async (body: { name: string; email: string }) => {
     return wrappedFetch<{userId:string}>('/users/', { method: 'POST', body: JSON.stringify(body) });
 }

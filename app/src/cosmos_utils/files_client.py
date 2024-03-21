@@ -1,7 +1,7 @@
 from .base import BaseClient
 from azure.storage.blob.aio import BlobServiceClient
 from azure.core.credentials import AzureKeyCredential
-
+from azure.core.exceptions import ResourceNotFoundError
 
 
 class TopicFilesCosmosClient(BaseClient):
@@ -51,4 +51,15 @@ class TopicFilesCosmosClient(BaseClient):
             blob=destination_path
         )
         await blob_client.upload_blob(data,headers={'x-ms-blob-content-disposition': f'inline; filename="{friendly_name}"'})
-            
+    
+    async def delete_blob(self, topicId:str, blob_path: str):
+        cleansed_blob_path = blob_path.split(f'{topicId}/',1)[1]
+        blob_client = self._blob_service_client.get_blob_client(
+            container=self._storage_container_name,
+            blob=f"{topicId}/{cleansed_blob_path}"
+        )
+        try:
+            return await blob_client.delete_blob()
+        except ResourceNotFoundError as e:
+            return None
+        
