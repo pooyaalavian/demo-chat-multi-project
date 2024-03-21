@@ -18,6 +18,17 @@ const FilePanel = ({ file, topicId }: { file: File, topicId: string }) => {
         // setShowPdf(true);
         // setPdfUrl(url);
     }
+
+    // const [iframeUrl, setIframeUrl] = useState('');
+    // const viewDoc = async () => {
+    //     const token = await fetchBlobSasToken(topicId, file.file);
+    //     let url = `${file.file}?${token}`;
+    //     if (file.file.toLowerCase().endsWith('.docx')) {
+    //         url = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url) + '&wdOrigin=BROWSELINK';
+    //     }
+    //     setIframeUrl(url);
+    // }
+    
     return (<div className='mb-2'>
         <div className="bg-slate-100 p-1">
             <div className="flex">
@@ -151,7 +162,7 @@ export const SingleTopic = () => {
                 const resources: string[] = [];
                 if (message.role === 'assistant') {
                     // regex to match <Reference id="..." /> and extract the id using
-                    const regex =/<ref.* id="([^"]*)"\/>/gi;
+                    const regex = /<ref.* id="([^"]*)"\/>/gi;
                     const matches = message.content.matchAll(regex);
                     for (const match of matches) {
                         resources.push(match[1]);
