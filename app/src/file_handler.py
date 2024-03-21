@@ -1,8 +1,9 @@
 from src.cosmos_utils.files_client import TopicFilesCosmosClient
 from src.doc_intelligence import (
     doc_intelligence_process_doc_url, 
+    doc_intelligence_process_doc_batch,
     json_to_analyze_result, 
-    doc_intelligence_get_pages_url,
+    doc_intelligence_get_num_pages,
     AnalyzeResult,
 )
 import json
@@ -187,27 +188,32 @@ class FileHandler:
     async def call_doc_intelligence(self):
         sas = await self.fileClient.generate_container_sas()
         url = f"{self.get_blob_url(self.file_blob_path)}?{sas}"
-        numPages = await doc_intelligence_get_pages_url(url)
+        numPages = await doc_intelligence_get_num_pages(url)
         DELTA = PAGES_PER_BATCH
         batch = 0
         min_page = 1
         max_page = min_page + DELTA - 1
         self.analyze_result: list[AnalyzeResult] = []
+        batches = []
         while min_page <= numPages:
-            result = await doc_intelligence_process_doc_url(url, pages=f"{min_page}-{max_page}")
-            with open(f"{self.doc_intel_local_path}/{batch}.json", "w") as f:
-                json.dump(result.to_dict(), f, indent=4)
-            self.analyze_result.append(result)
+        #     result = await doc_intelligence_process_doc_url(url, pages=f"{min_page}-{max_page}")
+        #     with open(f"{self.doc_intel_local_path}/{batch}.json", "w") as f:
+        #         json.dump(result.to_dict(), f, indent=4)
+        #     self.analyze_result.append(result)
 
+            batches.append(f"{min_page}-{max_page}")
             min_page = max_page + 1
             max_page = min(min_page + DELTA - 1, numPages)
             batch += 1
         
-        # result = await doc_intelligence_process_doc_url(url, pages="50-51")
-        # result = await doc_intelligence_process_doc(self.file_local_path)
-        # with open(self.doc_intel_local_path, "w") as f:
-        #     json.dump(result.to_dict(), f, indent=4)
-        # self.analyze_result = result
+        start = datetime.now()
+        self.analyze_result = await doc_intelligence_process_doc_batch(url, batches)
+        end = datetime.now()
+        print(f"Doc. Intelligence processed {len(self.analyze_result)} batches of document in {(end-start).seconds} seconds. ")
+        for id, result in enumerate(self.analyze_result):
+            with open(f"{self.doc_intel_local_path}/{id}.json", "w") as f:
+                json.dump(result.to_dict(), f, indent=4)
+        
 
         await self.add_progress("process_doc_intelligence", True, f"Doc. Intelligence processed the document in {batch} batches.", 
             patches=[]

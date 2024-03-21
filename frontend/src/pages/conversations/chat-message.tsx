@@ -133,8 +133,8 @@ const ReferenceItem = ({ referenceId, id }: { referenceId: string, id: number; }
         </div>
         {result && fileData && <div className="text-xs text-gray-700" onClick={handleRefClick}>
             {fileData.filename} - Page {result.pageNumber} 
-            {result.truncatedStart && 'and possibly previous pages'}
-            {result.truncatedEnd && 'and possibly following pages'}
+            {result.truncatedStart && ' and possibly the previous page(s)'}
+            {result.truncatedEnd && ' and possibly the following page(s)'}
         </div>}
         {loading && <div className="absolute bottom-0 left-0 right-0"><LoadingBar /></div>}
         {result && fileData && showReference

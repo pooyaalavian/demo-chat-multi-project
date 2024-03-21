@@ -6,7 +6,7 @@ import asyncio
 
 endpoint = os.getenv("AZURE_DOC_INTELLIGENCE_ENDPOINT")
 key = os.getenv("AZURE_DOC_INTELLIGENCE_API_KEY")
-
+TRANSACTION_PER_SECOND = 10
 
 document_analysis_client = DocumentAnalysisClient(
     endpoint=endpoint, credential=AzureKeyCredential(key)
@@ -19,12 +19,44 @@ async def doc_intelligence_process_doc_url(formUrl: str, pages: str=None) -> Ana
     )
     while not poller.done():
         await asyncio.sleep(3)
-        print("Polling..." + str(poller.status()))
+        print(f"Polling pages {pages}... {poller.status()}")
     result = poller.result()
     return result
 
+
+async def _doc_intelligence_process_doc_batch(formUrl: str, pages: list[str]) -> list[AnalyzeResult]:
+    pollers = {}
+    results = {}
+    for page in pages:
+        pollers[page] = document_analysis_client.begin_analyze_document_from_url(
+            "prebuilt-document", formUrl, pages=page
+        )
     
-async def doc_intelligence_get_pages_url(formUrl: str, min=0, max=1024) -> int:
+    while True:
+        await asyncio.sleep(3)
+        print(f"Polling pages {pages}... ")
+        for page in pages:
+            if page in pollers:
+                if pollers[page].done():
+                    results[page] = pollers[page].result()
+                    print(f"Page {page} done")
+                    del pollers[page]
+        if not bool(pollers):
+            break
+            
+    arr = [results[page] for page in pages]
+    return arr
+
+async def doc_intelligence_process_doc_batch(formUrl: str, pages: list[str]) -> list[AnalyzeResult]:
+    results = []
+    while len(pages) > 0:
+        batch = pages[:TRANSACTION_PER_SECOND]
+        pages = pages[TRANSACTION_PER_SECOND:]
+        results += await _doc_intelligence_process_doc_batch(formUrl, batch)
+    return results
+
+    
+async def doc_intelligence_get_num_pages(formUrl: str, min=0, max=1024) -> int:
     if min==max:
         return min
     delta = (max - min)//2
@@ -34,10 +66,10 @@ async def doc_intelligence_get_pages_url(formUrl: str, min=0, max=1024) -> int:
         document_analysis_client.begin_analyze_document_from_url(
             "prebuilt-read", formUrl, pages=f"{max}"
         )
-        return await doc_intelligence_get_pages_url(formUrl, max, max + delta)
+        return await doc_intelligence_get_num_pages(formUrl, max, max + delta)
     except HttpResponseError as e:
         if e.error.code == "InvalidArgument":
-            return await doc_intelligence_get_pages_url(formUrl, min, max - delta)
+            return await doc_intelligence_get_num_pages(formUrl, min, max - delta)
     except Exception as e:
         print(e)
         return None
