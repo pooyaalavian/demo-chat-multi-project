@@ -9,7 +9,7 @@ RUN npm ci
 COPY --chown=node:node ./frontend/ /frontend  
 RUN npm run build
 
-FROM python:3.11-alpine 
+FROM python:3.11-alpine as finalapp
 RUN apk add --no-cache --virtual .build-deps \  
     build-base \  
     libffi-dev \  
