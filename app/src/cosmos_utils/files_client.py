@@ -1,8 +1,9 @@
 from .base import BaseClient
 from azure.storage.blob.aio import BlobServiceClient
+from azure.storage.blob import generate_blob_sas, generate_container_sas
 from azure.core.credentials import AzureKeyCredential
 from azure.core.exceptions import ResourceNotFoundError
-
+from datetime import datetime, timedelta, UTC
 
 class TopicFilesCosmosClient(BaseClient):
     def __init__(
@@ -62,4 +63,28 @@ class TopicFilesCosmosClient(BaseClient):
             return await blob_client.delete_blob()
         except ResourceNotFoundError as e:
             return None
+    
+    
+    async def generate_blob_sas(self, blob_name: str)->str:
+        token = generate_blob_sas(
+            account_name=self._storage_account_name,
+            container_name=self._storage_container_name,
+            blob_name=blob_name,
+            account_key=self._storage_account_key,
+            permission="r",
+            expiry=datetime.now(UTC) + timedelta(hours=1),
+            start=datetime.now(UTC) - timedelta(minutes=1)
+        )
+        return token
+    
+    async def generate_container_sas(self)->str:
+        token = generate_container_sas(
+            account_name=self._storage_account_name,
+            container_name=self._storage_container_name,
+            account_key=self._storage_account_key,
+            permission="r",
+            expiry=datetime.now(UTC) + timedelta(hours=4),
+            start=datetime.now(UTC) - timedelta(minutes=1)
+        )
+        return token
         
