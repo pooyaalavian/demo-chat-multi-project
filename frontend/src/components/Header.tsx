@@ -67,7 +67,7 @@ const LoggedInPanel = ({ account }: { account: AccountInfo }) => {
 
 const LoggedOutPanel = () => {
     return <div className="w-20 h-12 flex items-center justify-center">
-        <button onClick={() => handleLogin(true)}
+        <button onClick={() => handleLogin()}
             className="border border-gray-700 hover:bg-blue-700 hover:text-white hover:shadow-md bg-white rounded-md p-2 text-blue-900">
             Sign in
         </button>
