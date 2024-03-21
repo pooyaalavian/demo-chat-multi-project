@@ -36,13 +36,20 @@ python -m venv .venv
 source ./.venv/bin/activate
 
 # install packages
-pip install -r ./api_v2/requirements.txt
+pip install -r ./app/requirements.txt
+
+cd frontend
+npm install
 ```
+
+
 
 ### Deploy Code
 ```sh
-git fetch && git pull
-cd app
+cd frontend 
+npm run build
+cd ../app
+# git fetch && git pull
 rm app.zip && zip -r app.zip .
 az webapp deploy --src-path app.zip 
 ```
