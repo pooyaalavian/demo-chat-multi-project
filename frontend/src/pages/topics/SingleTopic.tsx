@@ -29,7 +29,7 @@ const FilePanel = ({ file, topicId }: { file: File, topicId: string }) => {
     //     }
     //     setIframeUrl(url);
     // }
-    
+
     return (<div className='mb-2'>
         <div className="bg-slate-100 p-1">
             <div className="flex">
@@ -58,21 +58,14 @@ const JobPanel = ({ job, topicId }: { job: Job, topicId: string }) => {
                 <div className="flex-1">
                     <Link to={`/topics/${topicId}/jobs/${job.id}`}>
                         <div className="">
-                            {job.name}
+                            {job.question}
                         </div>
-                        {job.description && <p className='text-sm text-gray-600'>{job.description}</p>}
                     </Link>
                 </div>
-                {/* <div className="flex-0">
-                    <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={sendToBlob} title="Go to document">
-                        <FileSymlinkIcon />
-                    </button>
-                </div> */}
             </div>
         </div>
     </div>)
 };
-
 
 const ConversationPanel = ({ conversation, topicId, onDelete }: { conversation: Conversation; onDelete: () => void; topicId: string }) => {
 
@@ -123,6 +116,7 @@ export const UsersPanel = () => {
         </div>
     )
 };
+
 interface PanelProps { children: ReactNode, title: string, actionBtn?: { title: string; to: string } }
 const Panel = ({ children, title, actionBtn }: PanelProps) => {
     return (
@@ -239,9 +233,9 @@ export const SingleTopic = () => {
                         </Panel>
                     </div>
                     <div className=" flex-1">
-                        <Panel title="Batch Jobs" actionBtn={{ to: `/topics/${topicId}/jobs/new`, title: 'Submit a new job' }}>
-                            {topicId && jobs.map((job, id) => <JobPanel job={job} key={id}  topicId={topicId} />)}
-                            
+                        <Panel title="Batch Jobs" actionBtn={{ to: `/topics/${topicId}/jobs/new`, title: 'Submit a New Job' }}>
+                            {topicId && jobs.map((job, id) => <JobPanel job={job} key={id} topicId={topicId} />)}
+
                         </Panel>
                     </div>
                     {/* <div className="flex-1">

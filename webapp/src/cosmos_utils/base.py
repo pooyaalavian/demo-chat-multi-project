@@ -136,6 +136,7 @@ class BaseClient:
             return resp
         else:
             return True
+    
     async def get_by_id(self, partition_key, id):
         document = await self.container_client.read_item(
             item=id, partition_key=partition_key

@@ -1,11 +1,9 @@
-interface JobProgress {
-    state: 'queued' | 'running' | 'completed' | 'failed';
+export type JobStatus = 'queued' | 'running' | 'completed' | 'failed';
 
-}
 
 type PageIdentifier = string | '*' | '3-5' | '2,3,4' | '5-';
 
-interface JobFile {
+export interface JobFile {
     fileId: string;
     pages: PageIdentifier;
     keywordSearch?: string;
@@ -15,12 +13,14 @@ export interface Job {
     id: string;
     topicId: string;
     type: 'job';
-    name: string;
-    description?: string;
+    question: string;
+    llm: 'gpt-35-turbo' | 'gpt-4';
+    selectedFiles: JobFile[];
     createdAt: string;
     updatedAt: string;
-    progress: JobProgress;
-    files: JobFile[];
+    status: JobStatus;
+    error?: string;
+    results?: JobResult[];
 }
 
 export interface JobResult {
@@ -28,9 +28,18 @@ export interface JobResult {
     topicId: string;
     jobId: string;
     type: 'jobresult';
-    result: string;
+    result: {
+        contextAnswersQuestion: boolean;
+        answer: string[];
+        error?: string;
+    };
     fileId: string;
-    pageNumber: number;
+    page: number;
+    usage: {
+        prompt_tokens: number;
+        completion_tokens: number;
+        total_tokens: number;
+    }
     createdAt: string;
     updatedAt: string;
 }

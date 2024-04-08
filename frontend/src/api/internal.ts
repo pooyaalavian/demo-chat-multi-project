@@ -18,7 +18,8 @@ export const wrappedFetch = async <T>(url: string, options: RequestInit) => {
             },
         });
     if (!response.ok) {
-        throw new Error(response.statusText);
+        const error = await response.text();
+        throw new Error(error);
     }
     return await response.json() as T;
 }
@@ -107,13 +108,17 @@ export const fetchJobs = async (topicId: string) => {
 }
 
 export const fetchJob = async (topicId: string, jobId: string) => {
-    return wrappedFetch<File>(`/topics/${topicId}/jobs/${jobId}`, { method: 'GET' });
+    return wrappedFetch<Job>(`/topics/${topicId}/jobs/${jobId}`, { method: 'GET' });
 }
 
-export const createJob = async (topicId: string, payload: Job) => {
-    return wrappedFetch<File>(`/topics/${topicId}/jobs/`, { method: 'POST', body: JSON.stringify(payload) });
+export const createJob = async (topicId: string, payload: Partial<Job>) => {
+    return wrappedFetch<Job>(`/topics/${topicId}/jobs/`, { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export const resubmitJob = async (topicId: string, jobId: string) => {
+    return wrappedFetch<Job>(`/topics/${topicId}/jobs/${jobId}`, { method: 'PUT'});
 }
 
 export const deleteJob = async (topicId: string, jobId: string) => {
-    return wrappedFetch<File>(`/topics/${topicId}/jobs/${jobId}`, { method: 'DELETE' });
+    return wrappedFetch<Job>(`/topics/${topicId}/jobs/${jobId}`, { method: 'DELETE' });
 }
