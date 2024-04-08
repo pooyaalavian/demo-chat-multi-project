@@ -9,7 +9,7 @@ export default defineConfig({
     FRONTEND_VERSION: JSON.stringify(pkgJson.version),
   },
   build: {
-    outDir: "../app/static",
+    outDir: "../webapp/static",
     emptyOutDir: true,
     sourcemap: true,
   },
