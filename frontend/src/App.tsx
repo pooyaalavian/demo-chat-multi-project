@@ -15,6 +15,8 @@ import { Header } from './components/Header';
 import Markdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
 import { wrappedFetch } from './api/internal';
+import { NewJob } from './pages/jobs/NewJob';
+import { SingleJob } from './pages/jobs/SingleJob';
 
 declare const SERVER_VERSION: string;
 declare const FRONTEND_VERSION: string;
@@ -68,6 +70,8 @@ function App({ instance }: { instance: PublicClientApplication }) {
               <Route path="/topics/:topicId/files/:fileId" element={<SingleFile />} />
               <Route path="/topics/:topicId/conversations/new" element={<NewConversation />} />
               <Route path="/topics/:topicId/conversations/:conversationId" element={<SingleConversation />} />
+              <Route path="/topics/:topicId/jobs/new" element={<NewJob />} />
+              <Route path="/topics/:topicId/jobs/:jobId" element={<SingleJob />} />
               <Route path="/topics/new" element={<NewTopic />} />
               <Route path="/topics/:topicId" element={<SingleTopic />} />
               <Route path="/topics" element={<TopicHome />} />

@@ -1,11 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
 import { ReactNode, useEffect, useState } from "react";
-import { deleteConversation, fetchBlobSasToken, fetchFiles, fetchConversations, fetchTopic } from '../../api/internal';
+import { deleteConversation, fetchBlobSasToken, fetchFiles, fetchConversations, fetchTopic, fetchJobs } from '../../api/internal';
 import { File } from '../../types/file';
 import { Conversation } from '../../types/conversation';
 import { TopicUser, } from '../../types/user';
 import { Topic } from '../../types/topic';
 import { DeleteIcon, FileSymlinkIcon } from '@fluentui/react-icons-mdl2';
+import { Job } from '../../types/job';
 
 
 const FilePanel = ({ file, topicId }: { file: File, topicId: string }) => {
@@ -49,6 +50,29 @@ const FilePanel = ({ file, topicId }: { file: File, topicId: string }) => {
         </div>
     </div>)
 };
+
+const JobPanel = ({ job, topicId }: { job: Job, topicId: string }) => {
+    return (<div className='mb-2'>
+        <div className="bg-slate-100 p-1">
+            <div className="flex">
+                <div className="flex-1">
+                    <Link to={`/topics/${topicId}/jobs/${job.id}`}>
+                        <div className="">
+                            {job.name}
+                        </div>
+                        {job.description && <p className='text-sm text-gray-600'>{job.description}</p>}
+                    </Link>
+                </div>
+                {/* <div className="flex-0">
+                    <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={sendToBlob} title="Go to document">
+                        <FileSymlinkIcon />
+                    </button>
+                </div> */}
+            </div>
+        </div>
+    </div>)
+};
+
 
 const ConversationPanel = ({ conversation, topicId, onDelete }: { conversation: Conversation; onDelete: () => void; topicId: string }) => {
 
@@ -130,11 +154,13 @@ export const SingleTopic = () => {
     const [topic, setTopic] = useState<Topic | null>(null);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [files, setFiles] = useState<File[]>([]);
+    const [jobs, setJobs] = useState<Job[]>([]);
 
     useEffect(() => {
         if (topicId) {
             fetchConversations(topicId).then((data) => setConversations(data));
             fetchFiles(topicId).then((data) => setFiles(data));
+            fetchJobs(topicId).then((data) => setJobs(data));
         }
     }, [topicId]);
 
@@ -210,6 +236,12 @@ export const SingleTopic = () => {
                                     Export chat history to Excel
                                 </button>
                             </div>
+                        </Panel>
+                    </div>
+                    <div className=" flex-1">
+                        <Panel title="Batch Jobs" actionBtn={{ to: `/topics/${topicId}/jobs/new`, title: 'Submit a new job' }}>
+                            {topicId && jobs.map((job, id) => <JobPanel job={job} key={id}  topicId={topicId} />)}
+                            
                         </Panel>
                     </div>
                     {/* <div className="flex-1">

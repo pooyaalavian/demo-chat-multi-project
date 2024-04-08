@@ -66,6 +66,7 @@ async def append_user_info():
 from .api.topic import topics
 from .api.file import files
 from .api.conversation import conversations
+from .api.job import jobs
 from .api.user import users
 from .api.settings import settings
 from .api.search import search
@@ -73,6 +74,7 @@ from .api.search import search
 app.register_blueprint(topics, url_prefix="/api/topics")
 app.register_blueprint(files, url_prefix="/api/topics/<topicId>/files")
 app.register_blueprint(conversations, url_prefix="/api/topics/<topicId>/conversations")
+app.register_blueprint(jobs, url_prefix="/api/topics/<topicId>/jobs")
 app.register_blueprint(users, url_prefix="/api/users")
 app.register_blueprint(settings, url_prefix="/api/settings")
 app.register_blueprint(search, url_prefix="/api/search")

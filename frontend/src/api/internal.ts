@@ -3,6 +3,7 @@ import { File } from "../types/file";
 import { CogSearchResult, Conversation } from "../types/conversation";
 import { Topic } from "../types/topic";
 import { acquireTokens } from "./msal";
+import { Job } from "../types/job";
 
 export const wrappedFetch = async <T>(url: string, options: RequestInit) => {
     const token = await acquireTokens();
@@ -100,3 +101,19 @@ export const createUser = async (body: { name: string; email: string }) => {
 export const fetchSearchResults = async (topicId: string, searchId: string) => {
     return wrappedFetch<CogSearchResult>(`/search/${topicId}/${searchId}`, { method: 'GET' });
 };
+
+export const fetchJobs = async (topicId: string) => {
+    return wrappedFetch<Job[]>(`/topics/${topicId}/jobs/`, { method: 'GET' });
+}
+
+export const fetchJob = async (topicId: string, jobId: string) => {
+    return wrappedFetch<File>(`/topics/${topicId}/jobs/${jobId}`, { method: 'GET' });
+}
+
+export const createJob = async (topicId: string, payload: Job) => {
+    return wrappedFetch<File>(`/topics/${topicId}/jobs/`, { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export const deleteJob = async (topicId: string, jobId: string) => {
+    return wrappedFetch<File>(`/topics/${topicId}/jobs/${jobId}`, { method: 'DELETE' });
+}

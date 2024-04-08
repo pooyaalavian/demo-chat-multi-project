@@ -2,6 +2,7 @@ import os
 from .topics_client import TopicsCosmosClient
 from .conversations_client import ConversationCosmosClient
 from .files_client import TopicFilesCosmosClient
+from .jobs_client import JobsCosmosClient
 from .users_client import UsersCosmosClient
 from .base import BaseClient
 
@@ -23,12 +24,14 @@ filesCosmosClient = TopicFilesCosmosClient(
     ENDPOINT,API_KEY,DATABASE, COLLECTION_TOPICS,
     STORAGE_ACCOUNT,STORAGE_KEY,STORAGE_CONTAINER,
 )
+jobsCosmosClient = JobsCosmosClient(ENDPOINT,API_KEY,DATABASE, COLLECTION_TOPICS)
 settingsCosmosClient = BaseClient(ENDPOINT,API_KEY,DATABASE, COLLECTION_SETTINGS)
 
 __all__ = [
     "topicsCosmosClient",
     "conversationsCosmosClient",
     "filesCosmosClient",
+    "jobsCosmosClient",
     "usersCosmosClient",
     "settingsCosmosClient",
 ]
