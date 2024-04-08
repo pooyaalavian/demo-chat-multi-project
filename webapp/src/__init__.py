@@ -1,4 +1,4 @@
-__version__ = "1.3.1"
+__version__ = "1.4.0"
 
 
 from quart import Quart, request, send_from_directory, render_template, send_file,jsonify
