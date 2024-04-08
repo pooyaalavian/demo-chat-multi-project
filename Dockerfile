@@ -1,15 +1,15 @@
 FROM node:20-alpine AS frontend
-WORKDIR /app  
+WORKDIR /webapp  
 WORKDIR /frontend 
 COPY ./frontend/package*.json ./ 
-RUN chown -R node:node /app /frontend
+RUN chown -R node:node /webapp /frontend
 COPY ./frontend/package*.json ./  
 USER node
 RUN npm ci  
 COPY --chown=node:node ./frontend/ /frontend  
 RUN npm run build
 
-FROM python:3.11-alpine as finalapp
+FROM python:3.11-alpine as webapp
 RUN apk add --no-cache --virtual .build-deps \  
     build-base \  
     libffi-dev \  
@@ -18,14 +18,14 @@ RUN apk add --no-cache --virtual .build-deps \
     && apk add --no-cache \  
     libpq 
 
-COPY app/requirements.txt /app/
-WORKDIR /app
-RUN pip install --no-cache-dir -r /app/requirements.txt \  
+COPY webapp/requirements.txt /webapp/
+WORKDIR /webapp
+RUN pip install --no-cache-dir -r /webapp/requirements.txt \  
     && rm -rf /root/.cache  
 
-COPY ./app/ /app/  
-COPY --from=frontend /app/static  /app/static/
-RUN rm /app/.env
+COPY ./webapp/ /webapp/  
+COPY --from=frontend /webapp/static  /webapp/static/
+RUN rm /webapp/.env
 EXPOSE 80  
 
 CMD ["uvicorn", "--host", "0.0.0.0", "--port", "80", "--workers", "$WEB_CONCURRENCY", "app:app"]
