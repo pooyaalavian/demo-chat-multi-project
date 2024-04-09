@@ -36,7 +36,7 @@ python -m venv .venv
 source ./.venv/bin/activate
 
 # install packages
-pip install -r ./app/requirements.txt
+pip install -r ./webapp/requirements.txt
 
 cd frontend
 npm install
@@ -44,12 +44,19 @@ npm install
 
 
 
-### Deploy Code
+### Deploy Webapp
 ```sh
 cd frontend 
 npm run build
-cd ../app
+cd ../webapp
 # git fetch && git pull
 rm app.zip && zip -r app.zip .
 az webapp deploy --src-path app.zip 
+```
+
+### Deploy Function App
+```sh
+cd fnapp
+# rm app.zip && zip -r app.zip .
+func azure functionapp publish <APP_NAME> --build remote
 ```

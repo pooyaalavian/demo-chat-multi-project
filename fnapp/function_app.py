@@ -33,3 +33,10 @@ def long_message_handler(azservicebus: func.ServiceBusMessage):
 def file_upload_handler(azservicebus: func.ServiceBusMessage):
     logging.info('Python ServiceBus Queue trigger processed a message: %s',
                 azservicebus.get_body().decode('utf-8'))
+
+
+@app.route(route="test", auth_level=func.AuthLevel.ANONYMOUS)
+def test_http(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Python HTTP trigger function processed a request.')
+
+    return func.HttpResponse("Server is working",status_code=201)
