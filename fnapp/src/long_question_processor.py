@@ -17,16 +17,16 @@ You must respond in JSON format.
 The JSON must follow this format:
 {
     "contextAnswersQuestion": boolean,
-    "answer": ["string", "string"],
+    "answer": ["string", "string", ...],
     "error": "optional string" 
 }
 
-* If the answer to the question is not in the context document, set contextAnswersQuestion to false and respond. 
-For example if user B is looking for word "apple" and the word "apple" or its synonyms are not in the context document, set contextAnswersQuestion to false and provide an empty array for answer.
-* **IMPORTANT** If the context document does not contain relevant information, set contextAnswersQuestion to false and provide an empty array for answer.
-* If context answers the question, set contextAnswersQuestion to true and provide the answer.
-* If the answer to the question is not in the context document, respond with error explaining why.
+* If the answer to the question is not in the context document, respond with {"contextAnswersQuestion": false, "answer":[]}. 
+For example if user B is looking for word "apple" and the word "apple" or its synonyms are not in the context document, respond with {"contextAnswersQuestion": false, "answer":[]}.
+* If the context document has additional info regarding the location of the text, such as the paragraph number, enumeration number, etc., include that information in the answer. For example, {"contextAnswersQuestion": true, "answer": ["3.4 The apple is red."]}.
 * Do NOT generate an answer if it is not in the context document.
+* If there are any issues in the question or the context, respond with an error message. For example, {"contextAnswersQuestion": false, "answer":[], "error":"explain the issue."}.
+
 '''
 GPT_MODEL = "gpt-35-turbo"
 
@@ -82,7 +82,7 @@ class LongQuestionProcessor:
             if p['bounding_regions'][0]['page_number'] == page
             and (
                 p['role'] is None
-                or p['role'] in ['title','sectionHeading','pageHeader']
+                or p['role'] in ['title','sectionHeading', ]
             )
         ]
         text = "\n\n".join([p['content'] for p in paras])

@@ -1,15 +1,16 @@
 import { useParams, Link } from 'react-router-dom';
 import { ReactNode, useEffect, useState } from "react";
-import { deleteConversation, fetchBlobSasToken, fetchFiles, fetchConversations, fetchTopic, fetchJobs } from '../../api/internal';
+import { deleteConversation, fetchBlobSasToken, fetchFiles, fetchConversations, fetchTopic, fetchJobs, deleteJob } from '../../api/internal';
 import { File } from '../../types/file';
 import { Conversation } from '../../types/conversation';
 import { TopicUser, } from '../../types/user';
 import { Topic } from '../../types/topic';
 import { DeleteIcon, FileSymlinkIcon } from '@fluentui/react-icons-mdl2';
 import { Job } from '../../types/job';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 
-const FilePanel = ({ file, topicId }: { file: File, topicId: string }) => {
+const FilePanel = ({ file, topicId }: { file: File, topicId: string; deletePending:boolean; }) => {
     // const [showPdf, setShowPdf] = useState(false);
     // const [pdfUrl, setPdfUrl] = useState('');
     const sendToBlob = async () => {
@@ -51,7 +52,7 @@ const FilePanel = ({ file, topicId }: { file: File, topicId: string }) => {
     </div>)
 };
 
-const JobPanel = ({ job, topicId }: { job: Job, topicId: string }) => {
+const JobPanel = ({ job, topicId, onDelete, deletePending }: { job: Job, topicId: string; onDelete: () => void;  deletePending:boolean;}) => {
     return (<div className='mb-2'>
         <div className="bg-slate-100 p-1">
             <div className="flex">
@@ -62,12 +63,17 @@ const JobPanel = ({ job, topicId }: { job: Job, topicId: string }) => {
                         </div>
                     </Link>
                 </div>
+                <div className="flex-0">
+                    <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={onDelete} title={`Delete ${job.question}`} disabled={deletePending}>
+                        {deletePending?<LoadingSpinner size={4}/>:<DeleteIcon />}
+                    </button>
+                </div>
             </div>
         </div>
     </div>)
 };
 
-const ConversationPanel = ({ conversation, topicId, onDelete }: { conversation: Conversation; onDelete: () => void; topicId: string }) => {
+const ConversationPanel = ({ conversation, topicId, onDelete,deletePending }: { conversation: Conversation; onDelete: () => void; topicId: string; deletePending:boolean; }) => {
 
     return (<div className='mb-2'>
         <div className="bg-slate-100 p-1">
@@ -83,8 +89,8 @@ const ConversationPanel = ({ conversation, topicId, onDelete }: { conversation: 
                     </Link>
                 </div>
                 <div className="flex-0">
-                    <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={onDelete} title={`Delete ${conversation.name}`}>
-                        <DeleteIcon />
+                    <button className="hover:bg-sky-800 hover:text-sky-50 p-1" onClick={onDelete} title={`Delete ${conversation.name}`} disabled={deletePending}>
+                        {deletePending?<LoadingSpinner size={4}/>:<DeleteIcon />}
                     </button>
                 </div>
             </div>
@@ -149,6 +155,7 @@ export const SingleTopic = () => {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [files, setFiles] = useState<File[]>([]);
     const [jobs, setJobs] = useState<Job[]>([]);
+    const [deletePending, setDeletePending] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         if (topicId) {
@@ -160,10 +167,22 @@ export const SingleTopic = () => {
 
     const handleConversationDelete = (conversationId: string) => {
         if (!topicId) return;
-        console.log('Delete conversation');
-        deleteConversation(topicId, conversationId).then((data) => {
-            console.log(data);
-            fetchConversations(topicId).then((data) => setConversations(data));
+        setDeletePending(val => ({ ...val, [conversationId]: true }));
+        deleteConversation(topicId, conversationId).then(() => {
+            fetchConversations(topicId).then((data) => {
+                setConversations(data);
+                setDeletePending(val => ({ ...val, [conversationId]: false }));
+            });
+        });
+    }
+    const handleJobDelete = (jobId: string) => {
+        if (!topicId) return;
+        setDeletePending(val => ({ ...val, [jobId]: true }));
+        deleteJob(topicId, jobId).then(() => {
+            fetchJobs(topicId).then((data) => {
+                setJobs(data);
+                setDeletePending(val => ({ ...val, [jobId]: false }));
+            });
         });
     }
     useEffect(() => {
@@ -218,12 +237,12 @@ export const SingleTopic = () => {
                 <div className="flex flex-col space-between">
                     <div className=" flex-1">
                         <Panel title="Files" actionBtn={{ to: `/topics/${topicId}/files/new`, title: 'Upload New File' }}>
-                            {topicId && files.map((file, id) => <FilePanel file={file} key={id} topicId={topicId} />)}
+                            {topicId && files.map((file, id) => <FilePanel file={file} key={id} topicId={topicId} deletePending={ deletePending[file.id]} />)}
                         </Panel>
                     </div>
                     <div className=" flex-1">
                         <Panel title="Conversations" actionBtn={{ to: `/topics/${topicId}/conversations/new`, title: 'Start a New Conversation' }}>
-                            {topicId && conversations.map((conversation, id) => <ConversationPanel conversation={conversation} key={id} onDelete={() => handleConversationDelete(conversation.id)} topicId={topicId} />)}
+                            {topicId && conversations.map((conversation, id) => <ConversationPanel conversation={conversation} key={id} onDelete={() => handleConversationDelete(conversation.id)} deletePending={ deletePending[conversation.id]} topicId={topicId} />)}
                             <div className="border-t border-gray-400 pt-2">
                                 <button onClick={handleExportChatHistory}
                                     className="p-1 rounded-sm bg-whiteborder border-blue-800 text-blue-800 cursor-pointer hover:bg-sky-500 hover:text-white">
@@ -234,7 +253,7 @@ export const SingleTopic = () => {
                     </div>
                     <div className=" flex-1">
                         <Panel title="Batch Jobs" actionBtn={{ to: `/topics/${topicId}/jobs/new`, title: 'Submit a New Job' }}>
-                            {topicId && jobs.map((job, id) => <JobPanel job={job} key={id} topicId={topicId} />)}
+                            {topicId && jobs.map((job, id) => <JobPanel job={job} key={id} onDelete={() => handleJobDelete(job.id)} deletePending={ deletePending[job.id]} topicId={topicId} />)}
 
                         </Panel>
                     </div>

@@ -34,7 +34,7 @@ async def topic_create_job(topicId: str):
 
 @jobs.get("/")
 async def get_jobs(topicId: str):
-    jobs = await jobsCosmosClient.get_all(partition_key=topicId)
+    jobs = await jobsCosmosClient.get_all(partition_key=topicId, get_deleted_records=False)
     return jsonify(jobs)
 
 
@@ -55,13 +55,17 @@ async def topic_delete_job(topicId: str, jobId: str):
 @jobs.put("/<jobId>")
 async def resubmit_job(topicId: str, jobId: str):
     job = await jobsCosmosClient.get_by_id(topicId, jobId)
-    if job['status'] in ['completed','failed']:
-        await jobsCosmosClient.patch(topicId,jobId,[
+    if job['status'] in ['finished','failed']:
+        pathes = [
             {'op':'add','path':'/status','value':'queued'},
             {'op':'add','path':'/updatedAt','value':datetime.now().isoformat()},
-            {'op':'remove','path':'/error'},
-        ])
+        ]
+        if job.get('error'):
+            pathes.append({'op':'remove','path':'/error'})    
+        await jobsCosmosClient.patch(topicId,jobId, pathes)
         await jobsCosmosClient.delete_job_results(topicId, jobId)
         await jobsCosmosClient.submit_to_service_bus(topicId, jobId)
     job = await jobsCosmosClient.get_by_id(topicId, jobId)
+    results = await jobsCosmosClient.get_job_results(topicId, jobId)
+    job["results"] = results
     return jsonify(job)

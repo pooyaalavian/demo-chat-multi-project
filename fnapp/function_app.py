@@ -1,3 +1,5 @@
+__VERSION__ = "1.0.0"
+
 import azure.functions as func
 import logging
 import json
@@ -35,8 +37,8 @@ def file_upload_handler(azservicebus: func.ServiceBusMessage):
                 azservicebus.get_body().decode('utf-8'))
 
 
-@app.route(route="test", auth_level=func.AuthLevel.ANONYMOUS)
-def test_http(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Python HTTP trigger function processed a request.')
+@app.route(route="version", auth_level=func.AuthLevel.ANONYMOUS)
+def get_fn_version(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Python HTTP trigger function processed a request for /api/version.')
 
-    return func.HttpResponse("Server is working",status_code=201)
+    return func.HttpResponse(__VERSION__,status_code=200)

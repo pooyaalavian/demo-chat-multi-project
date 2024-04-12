@@ -149,8 +149,10 @@ class BaseClient:
             return document
         raise ValueError(f"Document with id {id} not found")
 
-    async def get_all(self, *, partition_key=None):
+    async def get_all(self, *, partition_key=None, get_deleted_records=False):
         query = "SELECT * FROM c WHERE c.type = @type"
+        if get_deleted_records==False:
+            query += " AND NOT IS_DEFINED(c.deleted)"
         params = [{"name": "@type", "value": self.type}]
         # if partition_key:
         #     query += f" AND c.{self.partition_key} = @partition_key"
