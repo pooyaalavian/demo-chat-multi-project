@@ -58,5 +58,5 @@ az webapp deploy --src-path app.zip
 ```sh
 cd fnapp
 # rm app.zip && zip -r app.zip .
-func azure functionapp publish <APP_NAME> --build remote
+func azure functionapp publish <APP_NAME> --build remote --python
 ```
