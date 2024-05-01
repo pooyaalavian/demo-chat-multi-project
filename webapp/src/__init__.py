@@ -6,6 +6,8 @@ from quart import Quart, request, send_from_directory, render_template, send_fil
 from quart_cors import cors
 from src.cosmos_utils import usersCosmosClient, settingsCosmosClient
 import os 
+import requests
+from datetime import datetime, timedelta
 
 app = Quart(__name__, static_folder="../static", template_folder="../static")
 # QuartSchema(app)
@@ -37,6 +39,22 @@ async def send_static_folder(path):
 @app.route('/img/<path:path>')
 async def send_static_image(path):
     return await send_from_directory('static/img', path)
+
+cached_version = {"webapp": __version__,}
+@app.get('/api/settings/version')
+async def send_version():
+    global cached_version
+    fetched_before = cached_version.get("_fnapp_fetch_ts") is not None
+    fetch_too_old = fetched_before and cached_version.get("_fnapp_fetch_ts") < datetime.now() - timedelta(hours=1)
+    
+    if not fetched_before or fetch_too_old:
+        url = os.getenv("AZURE_FNAPP_ENDPOINT", None)
+        if url is not None:
+            res = requests.get(f"{url}/api/version")
+            cached_version['fnapp'] = res.text
+            cached_version['_fnapp_fetch_ts'] = datetime.now()
+    payload = {k:v for k,v in cached_version.items() if not k.startswith("_")}  
+    return jsonify(payload)
 
 @app.get('/api/settings/<settingid>')
 async def send_settings(settingid):
