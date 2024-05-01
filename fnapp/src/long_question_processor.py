@@ -3,7 +3,7 @@ from azure.storage.blob import BlobServiceClient
 from openai import AzureOpenAI
 from openai.types.chat import ChatCompletion
 import json 
-from src.cosmos import create_jobresult, update_job, get_job
+from src.cosmos import create_jobresult, update_job, get_job, get_setting
 
 oai_client = AzureOpenAI(
        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
@@ -41,11 +41,16 @@ class LongQuestionProcessor:
             account_url=f"https://{os.getenv('StorageAccountName')}.blob.core.windows.net", 
             credential=os.getenv('StorageAccountKey')
         )
+        self.get_system_prompt()
+    
+    def get_system_prompt(self):
+        setting = get_setting('jobsystemprompt_summarize')
+        self.SYSTEM_PROMPT = '\n'.join(setting['content']) if setting else SYSTEM_PROMPT
     
     def call_openai(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1):
         response: ChatCompletion = oai_client.chat.completions.create(
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT}, 
+                {"role": "system", "content": self.SYSTEM_PROMPT}, 
                 {"role": "user", "name":"A", "content": context},
                 {"role": "user", "name":"B", "content": self.question},
             ],

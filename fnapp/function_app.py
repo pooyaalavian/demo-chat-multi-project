@@ -1,4 +1,4 @@
-__VERSION__ = "1.0.0"
+__VERSION__ = "1.1.0"
 
 import azure.functions as func
 import logging
@@ -8,6 +8,14 @@ from src.long_question_processor import LongQuestionProcessor
 
 app = func.FunctionApp()
 
+
+def handle_job(topicId, jobId):
+    logging.info(f"Processing {topicId}/jobs/{jobId}")
+    job = get_job(topicId, jobId)
+    files = [get_file(topicId, f['fileId']) for f in job["selectedFiles"]]
+    processor = LongQuestionProcessor(job, files)
+    processor.process()
+    return processor
 
 @app.service_bus_queue_trigger(
     arg_name="azservicebus", 
@@ -20,11 +28,8 @@ def long_message_handler(azservicebus: func.ServiceBusMessage):
     payload = json.loads(body)
     topicId = payload["topicId"]
     jobId = payload["jobId"]
-    logging.info(f"Processing {topicId}/jobs/{jobId}")
-    job = get_job(topicId, jobId)
-    files = [get_file(topicId, f['fileId']) for f in job["selectedFiles"]]
-    processor = LongQuestionProcessor(job, files)
-    processor.process()
+    handle_job(topicId, jobId)
+    
 
 @app.service_bus_queue_trigger(
     arg_name="azservicebus", 
@@ -42,3 +47,12 @@ def get_fn_version(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request for /api/version.')
 
     return func.HttpResponse(__VERSION__,status_code=200)
+
+
+@app.route(route="process_job", auth_level=func.AuthLevel.ANONYMOUS)
+def get_fn_process(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Python HTTP trigger function processed a request for /api/process_job.')
+    topicId = req.params.get('topicId')
+    jobId = req.params.get('jobId')
+    processor = handle_job(topicId, jobId)
+    return func.HttpResponse(processor.job, status_code=200)
