@@ -3,13 +3,15 @@ import { useEffect, useState, } from "react";
 import { BackToTopic } from '../topics/BackToTopic';
 import { deleteJob, fetchBlobSasToken, fetchFiles, fetchJob, resubmitJob } from '../../api/internal';
 import { LoadingBar } from '../../components/LoadingBar';
-import { Job, JobResult } from '../../types/job';
+import { Job, JobResult, JobStatus } from '../../types/job';
 import { ReferencePopup } from "../conversations/reference-popup";
 import { createPortal } from "react-dom";
 import { File } from '../../types/file';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { SkypeCircleCheckIcon, SkypeCircleSlashIcon } from '@fluentui/react-icons-mdl2-branded';
 
 
-const JobResultEl = ({ result , file, isEvenRow}: { result: JobResult;file?:File; isEvenRow:boolean }) => {
+const JobResultEl = ({ result, file, isEvenRow }: { result: JobResult; file?: File; isEvenRow: boolean }) => {
     const [showReference, setShowReference] = useState(false);
     const [sasToken, setSasToken] = useState<string>('');
     // if(!result.result.answer || result.result.answer.length==0) return null;
@@ -21,46 +23,69 @@ const JobResultEl = ({ result , file, isEvenRow}: { result: JobResult;file?:File
         setSasToken(sasToken);
         setShowReference(true);
     };
-    const evenOddClass = (isEvenRow?'bg-gray-100':'bg-white')+' whitespace-pre-wrap';
+    const evenOddClass = (isEvenRow ? 'bg-gray-100' : 'bg-white') + ' whitespace-pre-wrap';
     return <div className="flex flex-row">
         <div className="flex-0 w-12 text-center">
             <button className="text-underline text-blue-500" onClick={showReferencePopup}>
-            {result.page}
+                {result.page}
             </button>
-            </div>
+        </div>
         <div className="flex-1"><pre className={evenOddClass}>{result.result.answer.join('\n\n')}</pre></div>
         {/* <div className="flex-1">{showRaw?result.result:''}</div> */}
-        {showReference && file && createPortal(<ReferencePopup path={file.file+'?'+sasToken} page={result.page.toFixed(0)} onClose={() => setShowReference(false)} />, document.body)}
+        {showReference && file && createPortal(<ReferencePopup path={file.file + '?' + sasToken} page={result.page.toFixed(0)} onClose={() => setShowReference(false)} />, document.body)}
 
     </div>
 }
 
-const JobResults = ({ results, files, }: { results: JobResult[]; files:File[] }) => {
-    const sorted = results.sort((a, b) => a.page - b.page).filter(r=>r.result&& r.result.answer && r.result.answer.length>0);
-    
+const JobResults = ({ results, files, }: { results: JobResult[]; files: File[] }) => {
+    const sorted = results.sort((a, b) => a.page - b.page).filter(r => r.result && r.result.answer && r.result.answer.length > 0);
+
     return <div className="flex flex-col">
         <div className="flex flex-row">
             <div className="flex-0 w-12 font-bold">Page</div>
             <div className="flex-1 font-bold">Answer</div>
         </div>
-        {sorted.map((r, i) => <JobResultEl key={i} isEvenRow={i%2==0} result={r} file={files[0]}/>)}
+        {sorted.map((r, i) => <JobResultEl key={i} isEvenRow={i % 2 == 0} result={r} file={files[0]} />)}
     </div>
 }
+
+const JobStatusIcon = ({ status }: { status: JobStatus }) => {
+    const isSuccess = status === 'finished';
+    const isFailed = status === 'failed';
+    const isRunning = !(isSuccess || isFailed);
+    return <>
+    {isSuccess && <SkypeCircleCheckIcon className='text-green-600 text-3xl' />}
+    {isFailed && <SkypeCircleSlashIcon className='text-red-600 text-3xl' />}
+    {isRunning && <LoadingSpinner />}
+    </>
+};
 
 export const SingleJob = () => {
     const { topicId, jobId } = useParams();
     const [job, setJob] = useState<Job | null>(null);
+    const [refresh, setRefresh] = useState(0);
     const [deleteDisabled, setDeleteDisabled] = useState(false);
     const [resubmitDisabled, setResubmitDisabled] = useState(false);
     const [files, setFiles] = useState<File[]>([]);
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!topicId || !jobId) return;
-        fetchJob(topicId, jobId).then(setJob);
+        if (!topicId) return;
         fetchFiles(topicId).then(setFiles);
+    }, [topicId]);
 
-    }, [topicId, jobId]);
+    useEffect(() => {
+        if (!topicId || !jobId) return;
+        fetchJob(topicId, jobId)
+            .then((newjob) => {
+                setJob(newjob);
+                if (newjob.status !== 'finished' && newjob.status !== 'failed'){
+                    console.log('refreshing job', newjob.status);
+                    setTimeout(() => setRefresh(r => r + 1), 5000);
+                }
+            });
+
+    }, [topicId, jobId, refresh]);
 
     const deleteMyJob = async () => {
         if (!topicId || !jobId) return;
@@ -114,7 +139,7 @@ export const SingleJob = () => {
                 </div>
                 <div className="flex-0 h-full text-lg p-1  bg-gray-10 border border-gray-100">
                     <span className="font-bold">Files used: </span>
-                    {job.selectedFiles.map(s=>files.find(f=>f.id===s.fileId)?.filename).join(', ')}
+                    {job.selectedFiles.map(s => files.find(f => f.id === s.fileId)?.filename).join(', ')}
                 </div>
                 <div className="flex-0 h-full text-lg p-1  bg-gray-100 border border-gray-100">
                     <span className="font-bold">Language model: </span>
@@ -122,6 +147,10 @@ export const SingleJob = () => {
                 </div>
                 <div className="flex-0 h-full text-lg p-1  bg-gray-10 border border-gray-100">
                     <span className="font-bold">Job status: </span>
+                    <span className='inline-block'>
+                    <JobStatusIcon status={job.status} />
+
+                    </span>
                     {job.status}
                     {job.error ? <div className="text-red-600">Error: {job.error}</div> : null}
                 </div>
@@ -134,7 +163,7 @@ export const SingleJob = () => {
                 </div> : null}
                 <div className="flex-0 h-full text-lg p-1  bg-gray-10 border border-gray-100">
                     <div className="font-bold">Results: </div>
-                {job.results ? <JobResults results={job.results} files={files}/> : null}
+                    {job.results ? <JobResults results={job.results} files={files} /> : null}
                 </div>
             </div>
             <div className="flex-0 flex flex-col h-full">

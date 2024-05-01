@@ -1,4 +1,4 @@
-export type JobStatus = 'queued' | 'running' | 'completed' | 'failed';
+export type JobStatus = 'queued' | 'running' | 'finished' | 'failed';
 
 
 type PageIdentifier = string | '*' | '3-5' | '2,3,4' | '5-';
