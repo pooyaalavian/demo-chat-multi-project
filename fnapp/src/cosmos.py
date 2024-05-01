@@ -13,7 +13,7 @@ container_client = (
 settings_container_client = (
     cosmosdb_client
         .get_database_client(os.getenv('CosmosDbDatabaseName'))
-        .get_container_client('app')
+        .get_container_client(os.getenv('CosmosDbSettingsCollectionName'))
 )
 
 def get_job(topicId, jobId):
