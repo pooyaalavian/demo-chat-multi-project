@@ -17,9 +17,8 @@ import remarkGfm from 'remark-gfm';
 import { wrappedFetch } from './api/internal';
 import { NewJob } from './pages/jobs/NewJob';
 import { SingleJob } from './pages/jobs/SingleJob';
+import { Footer } from './components/Footer';
 
-declare const SERVER_VERSION: string;
-declare const FRONTEND_VERSION: string;
 
 function HomePage() {
   // const navigate = useNavigate();
@@ -79,8 +78,8 @@ function App({ instance }: { instance: PublicClientApplication }) {
               <Route path="/" element={<HomePage />} />
             </Routes>
           </div>
-          <div id="footer" className="flex-0 h-6 bg-gray-500 text-white overflow-hidden text-sm px-6">
-            Server Version: {SERVER_VERSION} | Frontend Version: {FRONTEND_VERSION}
+          <div id="footer">
+            <Footer />
           </div>
         </div>
       </Router>

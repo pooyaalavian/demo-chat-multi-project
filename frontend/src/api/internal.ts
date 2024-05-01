@@ -122,3 +122,8 @@ export const resubmitJob = async (topicId: string, jobId: string) => {
 export const deleteJob = async (topicId: string, jobId: string) => {
     return wrappedFetch<Job>(`/topics/${topicId}/jobs/${jobId}`, { method: 'DELETE' });
 }
+
+export const getAppVersion = async () => {
+    return wrappedFetch<{ webapp: string; fnapp:string }>('/settings/version', { method: 'GET' });
+};
+
