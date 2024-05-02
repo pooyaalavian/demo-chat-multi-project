@@ -1,5 +1,8 @@
-cd app
 git fetch && git pull
-rm app.zip
-zip -r app.zip .
-az webapp deploy --name $WEB_APP_NAME --resource-group $RESOURCE_GROUP --src-path app.zip
+cd webapp
+rm app.zip && zip -r app.zip .
+az webapp deploy --name $WEBAPP_NAME --resource-group $RESOURCE_GROUP --src-path app.zip
+cd ..
+cd fnapp
+rm app.zip && zip -r app.zip .
+func azure functionapp publish $FNAPP_NAME --build remote --python
