@@ -4,6 +4,7 @@ from openai import AzureOpenAI
 from openai.types.chat import ChatCompletion
 import json 
 from src.cosmos import create_jobresult, update_job, get_job, get_setting
+import logging
 
 oai_client = AzureOpenAI(
        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
@@ -11,7 +12,7 @@ oai_client = AzureOpenAI(
     api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
 )
 
-SYSTEM_PROMPT='''You are a diligent analyst. User A provides a document as context and User B asks a question. 
+SYSTEM_PROMPT='''You are a diligent analyst. You are given a document as context and User asks a question. 
 You need to read the document and answer the question.
 You must respond in JSON format.
 The JSON must follow this format:
@@ -44,23 +45,25 @@ class LongQuestionProcessor:
         self.get_system_prompt()
     
     def get_system_prompt(self):
-        setting = get_setting('jobsystemprompt_summarize')
-        self.SYSTEM_PROMPT = '\n'.join(setting['content']) if setting else SYSTEM_PROMPT
+        # setting = get_setting('jobsystemprompt_summarize')
+        # self.SYSTEM_PROMPT = '\n'.join(setting['content']) if setting else SYSTEM_PROMPT
+        self.SYSTEM_PROMPT = SYSTEM_PROMPT
     
     def call_openai(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1):
+        isGpt4 = model.find("4") != -1
         response: ChatCompletion = oai_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": self.SYSTEM_PROMPT}, 
-                {"role": "user", "name":"A", "content": context},
-                {"role": "user", "name":"B", "content": self.question},
+                {"role": "user", "name":"Document", "content": context},
+                {"role": "user", "name":"User", "content": self.question},
             ],
             model=model,
-            # deployment=GPT_MODEL,
             max_tokens=1000,
             temperature=0.2,
-            # response_format={"type":'json_object'},
+            response_format={"type":'json_object'} if isGpt4 else None,
         )
         answer = response.choices[0].message.content
+        logging.info(answer)
         if force_json:
             try:
                 answer = json.loads(answer)
@@ -80,7 +83,35 @@ class LongQuestionProcessor:
         pages = [p['page_number'] for p in  payload['pages']]
         return pages
     
-    def get_text_for_page(self, payload, page):
+    def tabl_to_html(self, table):
+        cells = table['cells']
+        rows = [c['row_index'] for c in cells ]
+        rows = list(set(rows))
+        table_html = "<table>"
+        texts = [c['content'] for c in cells if c['kind'] == 'content']
+        for row in rows:
+            row_cells = [c for c in cells if c['row_index'] == row]
+            table_html += "<tr>\n"
+            for cell in row_cells:
+                tag = 'td' if cell['kind']=='content' else 'tr'
+                colspan = f' colspan="{cell["column_span"]}"' if cell['column_span'] > 1 else ''
+                rowspan = f' rowspan="{cell["row_span"]}"' if cell['row_span'] > 1 else ''
+                table_html += f"""  <{tag}{rowspan}{colspan}>{cell['content']}</{tag}>\n"""
+            table_html += "</tr>\n"
+        table_html += "</table>"
+        return table_html, texts
+        
+        
+    def get_tables_for_page(self, payload, page):
+        tables = [
+            t
+            for t in payload['tables']
+            if t['bounding_regions'][0]['page_number'] == page
+        ]
+        
+        return [self.tabl_to_html(t) for t in tables]
+    
+    def get_paragraphs_for_page(self, payload, page):
         paras = [
             p
             for p in payload['paragraphs']
@@ -90,8 +121,29 @@ class LongQuestionProcessor:
                 or p['role'] in ['title','sectionHeading', ]
             )
         ]
-        text = "\n\n".join([p['content'] for p in paras])
-        return text
+        
+        texts = []
+        for p in paras:
+            text: str = p.get('content', "")
+            # text = text.replace(":unselected:", " ")
+            # text = text.replace(":selected:", " ")
+            texts.append(text)
+        return texts
+    
+    def get_text_for_page(self, payload, page):
+        paras = self.get_paragraphs_for_page(payload, page)
+        tables = self.get_tables_for_page(payload, page)
+        if len(tables) == 0:
+            return "\n\n".join(paras)
+        
+        for t in tables:
+            html, texts = t
+            # if text is present in table, remove it from paras
+            paras = [p for p in paras if p not in texts]
+            paras.append(html)
+            
+        return "\n\n".join(paras)
+    
     
     def process(self):
         tmp = get_job(self.topicId, self.jobId)
@@ -108,7 +160,7 @@ class LongQuestionProcessor:
                 for chunk in file['doc_intel']:
                     chunk_path = chunk.split('/files/')[1]
                     data = self.blob_client.get_blob_client('files',chunk_path).download_blob().readall()
-                    payload = json.loads(data)
+                    payload = json.loads(data.decode('utf-8'))
                     pages = self.get_pages(payload)
                     for page in pages:
                         text = self.get_text_for_page(payload, page)
