@@ -146,4 +146,5 @@ export const downloadJobResultsXlsx = async (topicId: string, jobId: string) => 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    return true;
 };

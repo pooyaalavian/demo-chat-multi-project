@@ -18,15 +18,15 @@ const JobResultEl = ({ result, finding, file, isEvenRow }: { result: JobResult<J
         setSasToken(sasToken);
         setShowReference(true);
     };
-    const evenOddClass = (isEvenRow ? 'bg-gray-100' : 'bg-white') + ' whitespace-pre-wrap';
-    return <div className="flex flex-row">
-        <div className="flex-0 w-12 text-center">
+    const evenOddClass = (isEvenRow ? 'bg-gray-50' : 'bg-white') + ' border-b border-gray-300 pb-2';
+    return <div className="flex flex-row items-stretch">
+        <div className={"flex-0 w-12 text-center "+evenOddClass}>
             <button className="text-underline text-blue-500" onClick={showReferencePopup}>
                 {result.page}
             </button>
         </div>
-        <div className="flex-1"><pre className={evenOddClass}>{finding.clause_address}</pre></div>
-        <div className="flex-1"><pre className={evenOddClass}>{finding.clause}</pre></div>
+        <div className={"flex-0 w-36 "+evenOddClass}><pre className='whitespace-pre-wrap'>{finding.clause_address}</pre></div>
+        <div className={"flex-1 "+evenOddClass}>{finding.clause}</div>
         {showReference && file && createPortal(<ReferencePopup path={file.file + '?' + sasToken} page={result.page.toFixed(0)} onClose={() => setShowReference(false)} />, document.body)}
 
     </div>
@@ -41,7 +41,7 @@ export const JobResultsRendererV2 = ({ results, files, }: { results: JobResult<J
     return <div className="flex flex-col">
         <div className="flex flex-row">
             <div className="flex-0 w-12 font-bold">Page</div>
-            <div className="flex-1 font-bold">Clause</div>
+            <div className="flex-0 w-36 font-bold">Clause</div>
             <div className="flex-1 font-bold">Text</div>
         </div>
         {sorted.map((r, i) => <JobResultEl key={i} isEvenRow={i % 2 == 0} result={r.result} finding={r.finding} file={files[0]} />)}

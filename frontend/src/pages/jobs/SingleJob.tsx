@@ -30,6 +30,7 @@ export const SingleJob = () => {
     const [deleteDisabled, setDeleteDisabled] = useState(false);
     const [resubmitDisabled, setResubmitDisabled] = useState(false);
     const [files, setFiles] = useState<File[]>([]);
+    const [downloadDisabled, setDownloadDisabled] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -66,9 +67,11 @@ export const SingleJob = () => {
         setJob(job);
     }
 
-    const downloadXlsx = ()=>{
+    const downloadXlsx = async ()=>{
         if (!topicId || !jobId) return;
-        downloadJobResultsXlsx(topicId, jobId);
+        setDownloadDisabled(true);
+        await downloadJobResultsXlsx(topicId, jobId);
+        setDownloadDisabled(false);
     }
 
     const downloadAsCsv = () => {
@@ -139,9 +142,9 @@ export const SingleJob = () => {
                 </div>
             </div>
             <div className="flex-0 flex flex-col h-full">
-                <button className="mb-2 ml-2 btn border border-green-600 text-green-800 p-2 rounded-md hover:bg-green-100"
-                    onClick={downlaodBehavior}>
-                    Download results
+                <button className="mb-2 ml-2 btn border border-green-600 text-green-800 p-2 rounded-md text-center hover:bg-green-100"
+                    onClick={downlaodBehavior} disabled={downloadDisabled}>
+                    {downloadDisabled ? <LoadingSpinner inline={true}/> : 'Download as CSV'}
                 </button>
                 <button className="mb-2 ml-2 btn border border-green-600 text-green-800 p-2 rounded-md hover:bg-green-100"
                     disabled={resubmitDisabled}
