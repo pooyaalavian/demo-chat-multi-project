@@ -1,6 +1,8 @@
-from quart import Blueprint, jsonify, request
+from quart import Blueprint, jsonify, request, send_file, after_this_request
+import os
 from src.cosmos_utils import jobsCosmosClient
 from datetime import datetime, timedelta, UTC
+from src.job_download import generate_xlsx_from_job_results, process_job_results
 
 jobs = Blueprint("jobs", __name__)
 
@@ -69,3 +71,23 @@ async def resubmit_job(topicId: str, jobId: str):
     results = await jobsCosmosClient.get_job_results(topicId, jobId)
     job["results"] = results
     return jsonify(job)
+
+@jobs.get("/<jobId>/results.xlsx")
+async def get_job_results_xlsx(topicId: str, jobId: str):
+    job = await jobsCosmosClient.get_by_id(topicId, jobId)
+    results = await jobsCosmosClient.get_job_results(topicId, jobId)
+    if not results:
+        return jsonify({"error": "no results found"}), 404
+    
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    tmp_file_identifier = f"{topicId}_{jobId}_{timestamp}"
+    _res = process_job_results(job, results)
+    filename = generate_xlsx_from_job_results(_res, tmp_file_identifier)
+    
+    @after_this_request
+    def remove_file(response):
+        print('removing {filename}...',end=' ') 
+        # os.remove(filename)
+        print('done!')
+        return response
+    return await send_file(filename, as_attachment=True, attachment_filename=f"results-{jobId}.xlsx", cache_timeout=0)
