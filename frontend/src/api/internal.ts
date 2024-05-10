@@ -5,7 +5,7 @@ import { Topic } from "../types/topic";
 import { acquireTokens } from "./msal";
 import { Job } from "../types/job";
 
-export const wrappedFetch = async <T>(url: string, options: RequestInit) => {
+export const wrappedFetchRaw = async (url: string, options: RequestInit) => {
     const token = await acquireTokens();
     const response = await fetch(
         environment.api + url,
@@ -21,6 +21,11 @@ export const wrappedFetch = async <T>(url: string, options: RequestInit) => {
         const error = await response.text();
         throw new Error(error);
     }
+    return response;
+}
+
+export const wrappedFetch = async <T>(url: string, options: RequestInit) => {
+    const response = await wrappedFetchRaw(url, options);
     return await response.json() as T;
 }
 
@@ -77,14 +82,14 @@ export const deleteTopic = async (topicId: string) => {
     return wrappedFetch<object>(`/topics/${topicId}`, { method: 'DELETE' });
 }
 
-export const createFile = async (topicId: string, filename: string, data:ArrayBuffer)=> {
+export const createFile = async (topicId: string, filename: string, data: ArrayBuffer) => {
     const body = new Blob([data], { type: 'application/octet-stream' });
     return wrappedFetch<File>(`/topics/${topicId}/files/`, {
         method: 'POST',
         body,
-        headers: { 
-            'Content-Type': 'application/octet-stream', 
-            filename, 
+        headers: {
+            'Content-Type': 'application/octet-stream',
+            filename,
             'Content-Disposition': `attachment; filename="${filename}"`,
         }
     });
@@ -96,7 +101,7 @@ export const deleteFile = async (topicId: string, fileId: string) => {
 }
 
 export const createUser = async (body: { name: string; email: string }) => {
-    return wrappedFetch<{userId:string}>('/users/', { method: 'POST', body: JSON.stringify(body) });
+    return wrappedFetch<{ userId: string }>('/users/', { method: 'POST', body: JSON.stringify(body) });
 }
 
 export const fetchSearchResults = async (topicId: string, searchId: string) => {
@@ -116,7 +121,7 @@ export const createJob = async (topicId: string, payload: Partial<Job>) => {
 }
 
 export const resubmitJob = async (topicId: string, jobId: string) => {
-    return wrappedFetch<Job>(`/topics/${topicId}/jobs/${jobId}`, { method: 'PUT'});
+    return wrappedFetch<Job>(`/topics/${topicId}/jobs/${jobId}`, { method: 'PUT' });
 }
 
 export const deleteJob = async (topicId: string, jobId: string) => {
@@ -124,6 +129,21 @@ export const deleteJob = async (topicId: string, jobId: string) => {
 }
 
 export const getAppVersion = async () => {
-    return wrappedFetch<{ webapp: string; fnapp:string }>('/settings/version', { method: 'GET' });
+    return wrappedFetch<{ webapp: string; fnapp: string }>('/settings/version', { method: 'GET' });
 };
 
+export const downloadJobResultsXlsx = async (topicId: string, jobId: string) => {
+    const response = await wrappedFetchRaw(`/topics/${topicId}/jobs/${jobId}/results.xlsx`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+    });
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const filename = response.headers.get('Content-Disposition')?.split('filename=')[1] || `job-${jobId}.xlsx`; 
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
