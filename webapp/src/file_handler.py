@@ -226,6 +226,7 @@ class FileHandler:
     async def upload_doc_to_blob(self, src_path, blob_path):
         # get all files in dir
         files = os.listdir(src_path)
+        files = sorted(files)
 
         for file in files:
             src = f"{src_path}/{file}"
