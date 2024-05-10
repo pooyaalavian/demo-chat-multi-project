@@ -55,4 +55,15 @@ def get_fn_process(req: func.HttpRequest) -> func.HttpResponse:
     topicId = req.params.get('topicId')
     jobId = req.params.get('jobId')
     processor = handle_job(topicId, jobId)
-    return func.HttpResponse(processor.job, status_code=200)
+    job = json.dumps(processor.job)
+    return func.HttpResponse(job, status_code=200)
+
+
+@app.route(route="file_info", auth_level=func.AuthLevel.ANONYMOUS)
+def get_file_info(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Python HTTP trigger function processed a request for /api/file_info.')
+    filepath = req.params.get('path')
+    from src.fileinfo_processor import FileInfoProcessor
+    processor = FileInfoProcessor(filepath)
+    obj = processor.process()
+    return func.HttpResponse(json.dumps(obj), status_code=200, mimetype='application/json')

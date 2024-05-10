@@ -19,4 +19,10 @@ export interface File{
     updatedAt: string;
     progress: FileProgress[];
     processed: boolean;
+    metadata?: {
+        specification_id: string;
+        title: string;
+        revision: string;
+        running_headers: string[];
+    }
 }

@@ -18,17 +18,19 @@ from src.ai_search import (
     get_index_client,
     upload_documents_to_index,
 )
+import aiohttp
 
 # 1. Upload the file to Blob
 # 2. Create a record in CosmosDB
 # 3. Call Doc. Intelligence
 # 4. Upload the file from (3) to Blob
-# 5. Update the record in CosmosDB (add the ref)
-# 6. Chunking
-# 7. Get Embeddings
-# 8. Upload the chunks+embedding to Storage
-# 9. Upload the chunks+embedding to Cognitive Search
-# 10. Clean up tmp files
+# 5. Call Az Function to get metadata
+# 6. Update the record in CosmosDB (add the ref)
+# 7. Chunking
+# 8. Get Embeddings
+# 9. Upload the chunks+embedding to Storage
+# 10. Upload the chunks+embedding to Cognitive Search
+# 11. Clean up tmp files
 
 MAX_CHUNK_LENGTH = 4000
 OVERLAP_WINDOW = 100
@@ -134,6 +136,7 @@ class FileHandler:
         try:
             if bypass<2: await self.call_doc_intelligence()
             if bypass<2: await self.upload_doc_to_blob(self.doc_intel_local_path, self.doc_intel_blob_path)
+            if bypass<2: await self.extract_file_metadata()
             # if bypass<2: await self.update_cosmos_object(doc_intel=f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.doc_intel_blob_path}")
             
             if bypass<3: await self.perform_chunking()
@@ -406,3 +409,22 @@ class FileHandler:
         self.file_object = await self.fileClient.upsert(payload)
         return self.log(inspect.currentframe().f_code.co_name, f"Updated cosmos object.")
 
+    async def get_file_object(self):
+        self.file_object = await self.fileClient.get_by_id(self.topicId, self.file_object["id"])
+
+    async def extract_file_metadata(self):
+        await self.get_file_object()
+        filepath = self.file_object['doc_intel'][0]
+        url = f"{os.getenv('AZURE_FNAPP_ENDPOINT')}/api/file_info?path={filepath}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                print(resp.status)
+                if resp.status > 299:
+                    return None
+                metadata = await resp.json()
+                await self.add_progress(
+                    "extract_file_metadata", True, 
+                    f"Extracted metadata from file. ", 
+                    patches=[{"op": "add", "path": "/metadata", "value": metadata}]
+                )
+        

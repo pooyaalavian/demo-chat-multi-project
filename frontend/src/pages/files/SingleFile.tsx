@@ -24,6 +24,7 @@ const STEPS = [
     'upload_to_blob',
     'process_doc_intelligence',
     'upload_doc_intelligence',
+    'extract_file_metadata',
     'perform_chunking',
     'perform_embedding',
     'postprocess_chunks',
@@ -51,6 +52,30 @@ const Progress = ({ step, progress }: { step: string; progress: FileProgress[] }
         </div>
     </div>
 }
+
+const MetadataViewer = ({ file }: { file: File }) => {
+    const [specId, setSpecId] = useState(file?.metadata?.specification_id||'');
+    const [title, setTitle] = useState(file?.metadata?.title||'');
+    const [revision, setRevision] = useState(file?.metadata?.revision||'');
+
+    return <>
+        <div className="text-lg">Metadata</div>
+        <div className="flex border rounded border-gray-300 overflow-hidden mb-2">
+            <div className="flex-0 w-32 py-2 px-1 bg-gray-100">Specification ID</div>
+            <div className="flex-1"><input className="px-1 py-2 w-full" type="text" value={specId} onChange={e=>setSpecId(e.target.value)} /></div>
+        </div>
+
+        <div className="flex border rounded border-gray-300 overflow-hidden mb-2">
+            <div className="flex-0 w-32 py-2 px-1 bg-gray-100">Title</div>
+            <div className="flex-1"><input className="px-1 py-2 w-full" type="text" value={title} onChange={e=>setTitle(e.target.value)}/></div>
+        </div>
+
+        <div className="flex border rounded border-gray-300 overflow-hidden mb-2">
+            <div className="flex-0 w-32 py-2 px-1 bg-gray-100">Revision</div>
+            <div className="flex-1"><input className="px-1 py-2 w-full" type="text" value={revision} onChange={e=>setRevision(e.target.value)}/></div>
+        </div>
+    </>
+};
 
 export const SingleFile = () => {
     const { topicId, fileId } = useParams();
@@ -94,13 +119,14 @@ export const SingleFile = () => {
                 <div className="progress-container">
                     {STEPS.map((step, id) => <Progress key={id} step={step} progress={file.progress} />)}
                 </div>
+                < MetadataViewer file={file} />
                 <div className="flex flex-row">
                     <div className="flex-1"></div>
                     <div className="flex-0">
                         <button className="btn bg-red-700 text-white p-2 rounded-md hover:bg-red-600"
-                        disabled={deleteDisabled}
-                        onClick={deleteMyFile}>
-                            {deleteDisabled?'...':'Delete this file'}
+                            disabled={deleteDisabled}
+                            onClick={deleteMyFile}>
+                            {deleteDisabled ? '...' : 'Delete this file'}
                         </button>
                     </div>
                 </div>
