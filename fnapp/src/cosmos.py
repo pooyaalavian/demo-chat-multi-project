@@ -29,7 +29,7 @@ def get_job(topicId, jobId):
 def update_job(topicId, jobId, patches):
     container_client.patch_item(jobId, topicId, patches)
 
-def create_jobresult(topicId, jobId, page, result, usage):
+def create_jobresult(topicId, jobId, page, result, usage, **kwargs):
     container_client.create_item(
         {
             "id": f"{jobId}-{page}",
@@ -38,7 +38,8 @@ def create_jobresult(topicId, jobId, page, result, usage):
             "jobId": jobId,
             "page": page,
             "result": result,
-            "usage": usage
+            "usage": usage,
+            **kwargs
         }
     )
 

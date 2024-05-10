@@ -9,7 +9,7 @@ export interface JobFile {
     keywordSearch?: string;
 }
 
-export interface Job {
+export interface Job<T = any> {
     id: string;
     topicId: string;
     type: 'job';
@@ -20,21 +20,33 @@ export interface Job {
     updatedAt: string;
     status: JobStatus;
     error?: string;
-    results?: JobResult[];
+    results?: JobResult<T>[];
 }
 
-export interface JobResult {
+export interface JobResultV1 {
+    contextAnswersQuestion: boolean;
+    answer: string[];
+    error?: string;
+}
+
+export interface JobResultV2_Finding {
+    clause: string;
+    clause_address: string;
+    page: string;
+};
+export interface JobResultV2 {
+    findings: JobResultV2_Finding[];
+}
+
+export interface JobResult<T = any> {
     id: string;
     topicId: string;
     jobId: string;
     type: 'jobresult';
-    result: {
-        contextAnswersQuestion: boolean;
-        answer: string[];
-        error?: string;
-    };
+    result: T;
     fileId: string;
     page: number;
+    output_version?: 'extract_v2';
     usage: {
         prompt_tokens: number;
         completion_tokens: number;
