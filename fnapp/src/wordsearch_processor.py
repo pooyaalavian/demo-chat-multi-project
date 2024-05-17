@@ -1,59 +1,45 @@
-import os 
-from os.path import dirname, join, realpath
-from azure.storage.blob import BlobServiceClient
-from openai import AzureOpenAI
+import os
 from openai.types.chat import ChatCompletion
-import json 
+import json
 from src.cosmos import create_jobresult, update_job, get_job, get_setting
 import logging
-
-oai_client = AzureOpenAI(
-       azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-)
+from src.processor import Processor
 
 
 GPT_MODEL = "gpt-35-turbo"
 
-class LongQuestionProcessor:
+class WordSearchProcessor(Processor):
     def __init__(self, job, files):
-        self.job = job
+        super().__init__(job, files, "extract_text.system.prompt")
         self.question = job["question"]
-        self.topicId = job["topicId"]
-        self.jobId = job["id"]
-        self.files = files
-        self.blob_client = BlobServiceClient(
-            account_url=f"https://{os.getenv('StorageAccountName')}.blob.core.windows.net", 
-            credential=os.getenv('StorageAccountKey')
-        )
-        self.get_system_prompt()
     
-    def get_system_prompt(self):
-        # setting = get_setting('jobsystemprompt_summarize')
-        # self.SYSTEM_PROMPT = '\n'.join(setting['content']) if setting else SYSTEM_PROMPT
-        with open(join(
-            dirname(realpath(__file__)),
-            'prompts/extract_text.system.prompt'
-        )) as f:
-            SYSTEM_PROMPT = f.read()
-        self.SYSTEM_PROMPT = SYSTEM_PROMPT
-    
-    def call_openai(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1):
+    def call_openai(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1, headers:list[str]=[]):
         isGpt4 = model.find("4") != -1
-        response: ChatCompletion = oai_client.chat.completions.create(
+        
+        ignore_headers = ''
+        if len(headers) > 0:
+            ignore_headers = 'Here are some of the headers from the document that you can safely ignore from the top of the page: \n'
+            for header in headers:
+                ignore_headers += f'- {header}\n'
+            
+        response: ChatCompletion = self.oai_client.chat.completions.create(
             messages=[
-                {"role": "system", "content": self.SYSTEM_PROMPT}, 
+                {"role": "system", "content": self.system_prompt + ignore_headers}, 
                 {"role": "user", "name":"Document", "content": context},
                 {"role": "user", "name":"User", "content": self.question},
             ],
             model=model,
             max_tokens=1000,
-            temperature=0.2,
+            temperature=0.0,
             response_format={"type":'json_object'} if isGpt4 else None,
         )
         answer_raw = response.choices[0].message.content
-        usage = response.usage
+        usage = {
+            "completion_tokens": response.usage.completion_tokens,
+            "prompt_tokens": response.usage.prompt_tokens,
+            "total_tokens": response.usage.total_tokens,
+        }
+        self.log_usage(usage)
         logging.info(answer_raw)
         if force_json:
             try:
@@ -135,6 +121,14 @@ class LongQuestionProcessor:
             
         return "\n\n".join(paras)
     
+    def prepare_text_for_llm(self, text: str, *, prev_page: str=None, ignorable_headers: list[str]=[]):
+        for h in ignorable_headers:
+            text = text.replace(h, "")
+        return text
+        # prev_context = f'<Page context="previousPage">{prev_page}</Page>' if prev_page else ""
+        # this_context = f'<Page context="currentPage">{text}</Page>'
+        # return f'''<Document>{prev_context}{this_context}</Document>'''
+        
     
     def process(self):
         tmp = get_job(self.topicId, self.jobId)
@@ -148,17 +142,26 @@ class LongQuestionProcessor:
             for file in self.files:
                 if type(file['doc_intel']) == str:
                     file['doc_intel'] = [file['doc_intel']]
+                ignorable_headers=file.get('metadata',{}).get('running_headers',[])
                 for chunk in file['doc_intel']:
                     chunk_path = chunk.split('/files/')[1]
                     data = self.blob_client.get_blob_client('files',chunk_path).download_blob().readall()
                     payload = json.loads(data.decode('utf-8'))
                     pages = self.get_pages(payload)
+                    prev_text = None
                     for page in pages:
                         text = self.get_text_for_page(payload, page)
-                        answer, usage = self.call_openai(text, model=self.job['llm'])
-                        create_jobresult(self.topicId, self.jobId, page, answer, usage.model_dump(),output_version="extract_v2", file=file)
+                        context = self.prepare_text_for_llm(text, prev_page=prev_text, ignorable_headers=ignorable_headers)
+                        answer, usage = self.call_openai(context, headers=ignorable_headers, model=self.job['llm'])
+                        prev_text = text
+                        create_jobresult(self.topicId, self.jobId, page, answer, usage,
+                                         output_version="extract_v2", 
+                                         file=file,
+                                         chunk=chunk,
+                                         context=context)
             update_job(self.topicId, self.jobId, [
                 {"op":"add", "path":"/status", "value":"finished"},
+                {"op":"add", "path":"/usage", "value":self.usage},
             ])
         except Exception as e:
             update_job(self.topicId, self.jobId, [

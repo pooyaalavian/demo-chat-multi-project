@@ -4,16 +4,24 @@ import azure.functions as func
 import logging
 import json
 from src.cosmos import get_job, get_file
-from src.long_question_processor import LongQuestionProcessor
+from src.genericquestion_processor import GenericQuestionProcessor
+from src.wordsearch_processor import WordSearchProcessor
+from typing import Literal
 
 app = func.FunctionApp()
 
+JobType = Literal['wordSearch', 'genericQuestion']
 
 def handle_job(topicId, jobId):
-    logging.info(f"Processing {topicId}/jobs/{jobId}")
     job = get_job(topicId, jobId)
     files = [get_file(topicId, f['fileId']) for f in job["selectedFiles"]]
-    processor = LongQuestionProcessor(job, files)
+    jobType: JobType = job["jobType"]
+    logging.info(f"Processing {jobType} {topicId}/jobs/{jobId}")
+    print(f"Processing {jobType} {topicId}/jobs/{jobId}")
+    if jobType == 'wordSearch':
+        processor = WordSearchProcessor(job, files)
+    elif jobType == 'genericQuestion':
+        processor = GenericQuestionProcessor(job, files)
     processor.process()
     return processor
 
