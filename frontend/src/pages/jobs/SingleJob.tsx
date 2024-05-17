@@ -45,7 +45,7 @@ export const SingleJob = () => {
                 setJob(newjob);
                 if (newjob.status !== 'finished' && newjob.status !== 'failed'){
                     console.log('refreshing job', newjob.status);
-                    setTimeout(() => setRefresh(r => r + 1), 5000);
+                    setTimeout(() => setRefresh(r => r + 1), 10000);
                 }
             });
 
@@ -65,6 +65,7 @@ export const SingleJob = () => {
         const job = await resubmitJob(topicId, jobId);
         setResubmitDisabled(false);
         setJob(job);
+        setRefresh(r => r + 1);
     }
 
     const downloadXlsx = async ()=>{
@@ -144,14 +145,14 @@ export const SingleJob = () => {
             <div className="flex-0 flex flex-col h-full">
                 <button className="mb-2 ml-2 btn border border-green-600 text-green-800 p-2 rounded-md text-center hover:bg-green-100"
                     onClick={downlaodBehavior} disabled={downloadDisabled}>
-                    {downloadDisabled ? <LoadingSpinner inline={true}/> : 'Download as CSV'}
+                    {downloadDisabled ? <LoadingSpinner inline={true}/> : 'Download to Excel'}
                 </button>
-                <button className="mb-2 ml-2 btn border border-green-600 text-green-800 p-2 rounded-md hover:bg-green-100"
+                <button className="mb-2 ml-2 btn border border-green-600 text-green-800 p-2 rounded-md text-center hover:bg-green-100"
                     disabled={resubmitDisabled}
                     onClick={resubmitMyJob}>
-                    {resubmitDisabled ? '...' : 'Resubmit this job'}
+                    {resubmitDisabled ? <LoadingSpinner inline={true}/> : 'Resubmit this job'}
                 </button>
-                <button className="mb-2 ml-2 btn bg-red-700 text-white p-2 rounded-md hover:bg-red-600"
+                <button className="mb-2 ml-2 btn border border-red-900 bg-red-700 text-white p-2 rounded-md hover:bg-red-600"
                     disabled={deleteDisabled}
                     onClick={deleteMyJob}>
                     {deleteDisabled ? '...' : 'Delete this job'}

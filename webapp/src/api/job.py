@@ -21,9 +21,11 @@ async def topic_create_job(topicId: str):
     
     payload = {
         "type": "job",
+        "jobType":body.get("jobType",None), 
         "topicId": topicId,
         "llm": body.get("llm","gpt-35-turbo"),
         "question": body["question"],
+        "systemPrompt": body.get("systemPrompt",None),
         "selectedFiles": body["selectedFiles"],
         "status":"queued", # "queued", "running", "completed", "failed
         "ownerId": request.userId,
@@ -84,10 +86,4 @@ async def get_job_results_xlsx(topicId: str, jobId: str):
     _res = process_job_results(job, results)
     filename = generate_xlsx_from_job_results(_res, tmp_file_identifier)
     
-    @after_this_request
-    def remove_file(response):
-        print('removing {filename}...',end=' ') 
-        # os.remove(filename)
-        print('done!')
-        return response
     return await send_file(filename, as_attachment=True, attachment_filename=f"results-{jobId}.xlsx", cache_timeout=0)

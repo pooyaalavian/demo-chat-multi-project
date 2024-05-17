@@ -9,11 +9,15 @@ export interface JobFile {
     keywordSearch?: string;
 }
 
+export type JobType = 'wordSearch' | 'genericQuestion';
+
 export interface Job<T = any> {
     id: string;
     topicId: string;
     type: 'job';
+    jobType: JobType;
     question: string;
+    systemPrompt?: string;
     llm: 'gpt-35-turbo' | 'gpt-4';
     selectedFiles: JobFile[];
     createdAt: string;
