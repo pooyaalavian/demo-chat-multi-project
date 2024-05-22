@@ -31,8 +31,16 @@ export const NewJob = () => {
         const question = event.target.querySelector('#question').value;
         const llm = event.target.querySelector('input[name="llm"]:checked').value;
 
-        const selectedFiles = files.map(f => ({ fileId: f.id, pages: '*' }))
-            .filter(f => event.target.querySelector(`#file${f.fileId}`).checked);
+        const selectedFiles = files.map(f => ({
+            fileId: f.id,
+            pages: event.target.querySelector(`#page_file${f.id}`).value||'*',
+        })).filter(f => event.target.querySelector(`#file${f.fileId}`).checked);
+        
+        if (selectedFiles.length === 0) {
+            setError('Please select at least one file.');
+            setBtnDisabled(false);
+            return;
+        }
 
         const body: Partial<Job> = {
             jobType,
@@ -44,6 +52,7 @@ export const NewJob = () => {
         try {
             console.log(body);
             const res = await createJob(topicId, body);
+            setBtnDisabled(false);
             navigate(`/topics/${topicId}/jobs/${res.id}`);
         }
         catch (e) {
@@ -93,13 +102,13 @@ export const NewJob = () => {
                     <div className="flex-1 m-1 border-b shadow-gray-300 shadow-sm">
                         <div className="flex items-center">
                             <span className="flex-0 p-2 w-32">Question</span>
-                            <input type="text" id="question" placeholder={'Type your question here. This question will be asked from each page of your document.'} className="bg-blue-50 p-2 w-full flex-1"/>
+                            <input type="text" id="question" placeholder={'Type your question here. This question will be asked from each page of your document.'} className="bg-blue-50 p-2 w-full flex-1" />
                         </div>
                     </div>
                     <div className="flex-1 m-1 border-b shadow-gray-300 shadow-sm">
                         <div className="flex items-center">
                             <span className="flex-0 p-2 w-32">Model instructions</span>
-                            <textarea id="systemprompt" placeholder={'Type additional instructions here. These instructions help the LLM perform your task more accurately.'} className="bg-blue-50 p-2 w-full flex-1" rows={4}/>
+                            <textarea id="systemprompt" placeholder={'Type additional instructions here. These instructions help the LLM perform your task more accurately.'} className="bg-blue-50 p-2 w-full flex-1" rows={4} />
                         </div>
                     </div>
                 </>
@@ -126,16 +135,19 @@ export const NewJob = () => {
                     <div className="flex items-center">
                         <span className="flex-0 p-2 w-32">Files</span>
                         <div className="bg-blue-50 p-2 w-full flex-1" >
-                            {files.map(f => ({ ...f, safe_id: 'file' + f.id })).map((f, i) => <div key={i} className="flex items-center">
-                                <input type="checkbox" id={f.safe_id} name={f.safe_id} value={f.safe_id} />
-                                <label htmlFor={f.safe_id}>{f.filename}</label>
-                            </div>)}
+                            {files.map(f => ({ ...f, safe_id: 'file' + f.id })).map((f, i) =>
+                                <div key={i} className="flex items-center">
+                                    <input type="checkbox" id={f.safe_id} name={f.safe_id} value={f.safe_id} />
+                                    <label htmlFor={f.safe_id}>{f.filename}</label>
+                                    <div className="w-3"></div>
+                                    <input className='px-2 py-1 flex-1' type="text" name={`page_${f.safe_id}`} id={`page_${f.safe_id}`} placeholder='Pages (leave empty for all pages)' />
+                                </div>)}
                         </div>
                     </div>
                 </div>
 
                 <div className="flex-1 m-1">
-                    <input type="submit" value={!btnDisabled?"Submit":"..."} className="cursor-pointer rounded-lg border p-2 border-gray-800 hover:bg-blue-950 hover:text-white" disabled={btnDisabled}/>
+                    <input type="submit" value={!btnDisabled ? "Submit" : "..."} className="cursor-pointer rounded-lg border p-2 border-gray-800 hover:bg-blue-950 hover:text-white" disabled={btnDisabled} />
                 </div>
                 {error && <div className="flex-1 bg-red-100 text-red-950">{error}</div>}
 
