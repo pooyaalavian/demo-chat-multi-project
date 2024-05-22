@@ -1,4 +1,4 @@
-__VERSION__ = "1.4.0"
+__VERSION__ = "1.4.1"
 
 import azure.functions as func
 import logging
