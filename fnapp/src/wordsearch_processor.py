@@ -1,10 +1,9 @@
-import os
 from openai.types.chat import ChatCompletion
 import json
-from src.cosmos import create_jobresult, update_job, get_job, get_setting
+from src.cosmos import create_jobresult, update_job, get_job
 import logging
 from src.processor import Processor
-
+from src.parsers import parse_page_str, table_to_html
 
 GPT_MODEL = "gpt-35-turbo"
 
@@ -13,20 +12,23 @@ class WordSearchProcessor(Processor):
         super().__init__(job, files, "extract_text.system.prompt")
         self.question = job["question"]
     
-    def call_openai(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1, headers:list[str]=[]):
+    def call_openai(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1, headers=[]):
         isGpt4 = model.find("4") != -1
         
         ignore_headers = ''
         if len(headers) > 0:
-            ignore_headers = 'Here are some of the headers from the document that you can safely ignore from the top of the page: \n'
+            ignore_headers = '\nHere is a non-comprehensive list of document headers that you must ignore: \n'
             for header in headers:
                 ignore_headers += f'- {header}\n'
-            
+        
+        system_prompt = self.system_prompt + ignore_headers
+        user_prompt = self.question.lower()
+        
         response: ChatCompletion = self.oai_client.chat.completions.create(
             messages=[
-                {"role": "system", "content": self.system_prompt + ignore_headers}, 
+                {"role": "system", "content": system_prompt }, 
                 {"role": "user", "name":"Document", "content": context},
-                {"role": "user", "name":"User", "content": self.question},
+                {"role": "user", "name":"User", "content": user_prompt},
             ],
             model=model,
             max_tokens=1000,
@@ -56,28 +58,11 @@ class WordSearchProcessor(Processor):
                     answer= {'_raw': answer_raw}
         return answer, usage
     
-    def get_pages(self, payload):
+    def get_pages(self, file, payload):
         pages = [p['page_number'] for p in  payload['pages']]
+        f = [f for f in self.job['selectedFiles'] if f['fileId'] == file['id']][0]
+        pages = parse_page_str(f["pages"], pages)
         return pages
-    
-    def tabl_to_html(self, table):
-        cells = table['cells']
-        rows = [c['row_index'] for c in cells ]
-        rows = list(set(rows))
-        table_html = "<table>"
-        texts = [c['content'] for c in cells if c['kind'] == 'content']
-        for row in rows:
-            row_cells = [c for c in cells if c['row_index'] == row]
-            table_html += "<tr>\n"
-            for cell in row_cells:
-                tag = 'td' if cell['kind']=='content' else 'tr'
-                colspan = f' colspan="{cell["column_span"]}"' if cell['column_span'] > 1 else ''
-                rowspan = f' rowspan="{cell["row_span"]}"' if cell['row_span'] > 1 else ''
-                table_html += f"""  <{tag}{rowspan}{colspan}>{cell['content']}</{tag}>\n"""
-            table_html += "</tr>\n"
-        table_html += "</table>"
-        return table_html, texts
-        
         
     def get_tables_for_page(self, payload, page):
         tables = [
@@ -86,7 +71,7 @@ class WordSearchProcessor(Processor):
             if t['bounding_regions'][0]['page_number'] == page
         ]
         
-        return [self.tabl_to_html(t) for t in tables]
+        return [table_to_html(t) for t in tables]
     
     def get_paragraphs_for_page(self, payload, page):
         paras = [
@@ -121,13 +106,17 @@ class WordSearchProcessor(Processor):
             
         return "\n\n".join(paras)
     
-    def prepare_text_for_llm(self, text: str, *, prev_page: str=None, ignorable_headers: list[str]=[]):
-        for h in ignorable_headers:
-            text = text.replace(h, "")
-        return text
-        # prev_context = f'<Page context="previousPage">{prev_page}</Page>' if prev_page else ""
-        # this_context = f'<Page context="currentPage">{text}</Page>'
-        # return f'''<Document>{prev_context}{this_context}</Document>'''
+    def prepare_text_for_llm(self, text: str, *, ignorable_headers: list[str]=[]):
+        # for h in ignorable_headers:
+        #     text = text.replace(h, "")
+        non_ascii_dict = {
+            '℃': "°C", 
+            'º':'°',  
+            '≤':'<=',
+        }
+        for k,v in non_ascii_dict.items():
+            text = text.replace(k,v)
+        return text.strip()
         
     
     def process(self):
@@ -147,18 +136,22 @@ class WordSearchProcessor(Processor):
                     chunk_path = chunk.split('/files/')[1]
                     data = self.blob_client.get_blob_client('files',chunk_path).download_blob().readall()
                     payload = json.loads(data.decode('utf-8'))
-                    pages = self.get_pages(payload)
-                    prev_text = None
+                    
+                    pages = self.get_pages(file, payload)
                     for page in pages:
                         text = self.get_text_for_page(payload, page)
-                        context = self.prepare_text_for_llm(text, prev_page=prev_text, ignorable_headers=ignorable_headers)
-                        answer, usage = self.call_openai(context, headers=ignorable_headers, model=self.job['llm'])
-                        prev_text = text
-                        create_jobresult(self.topicId, self.jobId, page, answer, usage,
-                                         output_version="extract_v2", 
-                                         file=file,
-                                         chunk=chunk,
-                                         context=context)
+                        context = self.prepare_text_for_llm(text, ignorable_headers=ignorable_headers)
+                        answer, usage = self.call_openai(context, model=self.job['llm'], headers=ignorable_headers)
+                        if 'findings' in answer and  len(answer['findings'])>0:
+                            answer['all_findings'] = answer['findings']
+                            answer['findings'] = [f for f in answer['all_findings'] if f['confidence'] > 0.5]
+                        create_jobresult(
+                            self.topicId, self.jobId, page, answer, usage,
+                            output_version="extract_v2", 
+                            file=file,
+                            chunk=chunk,
+                            context=context
+                        )
             update_job(self.topicId, self.jobId, [
                 {"op":"add", "path":"/status", "value":"finished"},
                 {"op":"add", "path":"/usage", "value":self.usage},

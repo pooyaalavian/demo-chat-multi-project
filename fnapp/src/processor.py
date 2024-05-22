@@ -2,10 +2,10 @@ import os
 from os.path import dirname, join, realpath
 from azure.storage.blob import BlobServiceClient
 from openai import AzureOpenAI
-from openai.types.chat import ChatCompletion
-import json
-from src.cosmos import create_jobresult, update_job, get_job, get_setting
-import logging
+# from openai.types.chat import ChatCompletion
+# import json
+# from src.cosmos import create_jobresult, update_job, get_job, get_setting
+# import logging
 
 
 

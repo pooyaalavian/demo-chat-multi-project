@@ -1,9 +1,9 @@
-import os
 from openai.types.chat import ChatCompletion
 import json
-from src.cosmos import create_jobresult, update_job, get_job, get_setting
+from src.cosmos import create_jobresult, update_job, get_job
 import logging
 from src.processor import Processor
+from src.parsers import parse_page_str, table_to_html
 
 GPT_MODEL = "gpt-35-turbo"
 class GenericQuestionProcessor(Processor):
@@ -57,35 +57,11 @@ class GenericQuestionProcessor(Processor):
                     answer = {"error":"failed to parse OpenAI response as JSON", "raw": answer_raw}
         return answer, usage
 
-    def get_pages(self, payload):
-        pages = [p["page_number"] for p in payload["pages"]]
+    def get_pages(self, file, payload):
+        pages = [p['page_number'] for p in  payload['pages']]
+        f = [f for f in self.job['selectedFiles'] if f['fileId'] == file['id']][0]
+        pages = parse_page_str(f["pages"], pages)
         return pages
-
-    def tabl_to_html(self, table):
-        cells = table["cells"]
-        rows = [c["row_index"] for c in cells]
-        rows = list(set(rows))
-        table_html = "<table>"
-        texts = [c["content"] for c in cells if c["kind"] == "content"]
-        for row in rows:
-            row_cells = [c for c in cells if c["row_index"] == row]
-            table_html += "<tr>\n"
-            for cell in row_cells:
-                tag = "td" if cell["kind"] == "content" else "tr"
-                colspan = (
-                    f' colspan="{cell["column_span"]}"'
-                    if cell["column_span"] > 1
-                    else ""
-                )
-                rowspan = (
-                    f' rowspan="{cell["row_span"]}"' if cell["row_span"] > 1 else ""
-                )
-                table_html += (
-                    f"""  <{tag}{rowspan}{colspan}>{cell['content']}</{tag}>\n"""
-                )
-            table_html += "</tr>\n"
-        table_html += "</table>"
-        return table_html, texts
 
     def get_tables_for_page(self, payload, page):
         tables = [
@@ -94,7 +70,7 @@ class GenericQuestionProcessor(Processor):
             if t["bounding_regions"][0]["page_number"] == page
         ]
 
-        return [self.tabl_to_html(t) for t in tables]
+        return [table_to_html(t) for t in tables]
 
     def get_paragraphs_for_page(self, payload, page):
         paras = [
@@ -157,7 +133,7 @@ class GenericQuestionProcessor(Processor):
                         .readall()
                     )
                     payload = json.loads(data.decode("utf-8"))
-                    pages = self.get_pages(payload)
+                    pages = self.get_pages(file, payload)
                     for page in pages:
                         text = self.get_text_for_page(payload, page)
                         answer, usage = self.call_openai(text, model=self.job["llm"])
