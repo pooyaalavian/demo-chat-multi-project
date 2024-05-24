@@ -12,7 +12,7 @@ class WordSearchProcessor(Processor):
         super().__init__(job, files, "extract_text.system.prompt")
         self.question = job["question"]
     
-    def call_openai(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1, headers=[]):
+    def openai_find_matches(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1, headers=[]):
         isGpt4 = model.find("4") != -1
         
         ignore_headers = ''
@@ -32,7 +32,7 @@ class WordSearchProcessor(Processor):
             ],
             model=model,
             max_tokens=1000,
-            temperature=0.0,
+            temperature=0.3,
             response_format={"type":'json_object'} if isGpt4 else None,
         )
         answer_raw = response.choices[0].message.content
@@ -48,12 +48,47 @@ class WordSearchProcessor(Processor):
                 answer = json.loads(answer_raw)
             except json.JSONDecodeError:
                 if retry_count < 3:
-                    answer, usage2 = self.call_openai(context, model=model, force_json=force_json, retry_count=retry_count+1)
-                    usage = {
-                        "completion_tokens": usage['completion_tokens']+usage2['completion_tokens'],
-                        "prompt_tokens": usage['prompt_tokens']+usage2['prompt_tokens'],
-                        "total_tokens": usage['total_tokens']+usage2['total_tokens'],
-                    }
+                    answer, usage2 = self.openai_find_matches(context, model=model, force_json=force_json, retry_count=retry_count+1, headers=headers)
+                    usage = self.add_usage(usage, usage2)
+                else:
+                    answer= {'_raw': answer_raw}
+        return answer, usage
+    
+    def openai_confirm_results(self, answer, *, model=GPT_MODEL, force_json=True, retry_count=1, headers=[]):
+        isGpt4 = model.find("4") != -1
+        prompt_file = 'extract_text_verify.system.prompt'
+        doc_headers = ''
+        if len(headers) > 0:
+            for header in headers:
+                doc_headers += f'- {header}\n'
+        system_prompt = self.read_prompt(prompt_file,BASE_WORD=self.question, DOC_HEADERS=doc_headers)
+        user_prompt = json.dumps(answer, indent=2)
+        
+        response: ChatCompletion = self.oai_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt }, 
+                {"role": "user", "content": user_prompt},
+            ],
+            model=model,
+            max_tokens=1000,
+            temperature=0.3,
+            response_format={"type":'json_object'} if isGpt4 else None,
+        )
+        answer_raw = response.choices[0].message.content
+        usage = {
+            "completion_tokens": response.usage.completion_tokens,
+            "prompt_tokens": response.usage.prompt_tokens,
+            "total_tokens": response.usage.total_tokens,
+        }
+        self.log_usage(usage)
+        logging.info(answer_raw)
+        if force_json:
+            try:
+                answer = json.loads(answer_raw)
+            except json.JSONDecodeError:
+                if retry_count < 3:
+                    answer, usage2 = self.openai_confirm_results(answer, model=model, force_json=force_json, retry_count=retry_count+1, headers=headers)
+                    usage = self.add_usage(usage, usage2)
                 else:
                     answer= {'_raw': answer_raw}
         return answer, usage
@@ -141,10 +176,17 @@ class WordSearchProcessor(Processor):
                     for page in pages:
                         text = self.get_text_for_page(payload, page)
                         context = self.prepare_text_for_llm(text, ignorable_headers=ignorable_headers)
-                        answer, usage = self.call_openai(context, model=self.job['llm'], headers=ignorable_headers)
+                        answer, usage = self.openai_find_matches(context, model=self.job['llm'], headers=ignorable_headers)
                         if 'findings' in answer and  len(answer['findings'])>0:
                             answer['all_findings'] = answer['findings']
                             answer['findings'] = [f for f in answer['all_findings'] if f['confidence'] > 0.5]
+                            for f in answer['findings']:
+                                del f['confidence']
+                                del f['explanation']
+                        if len(answer['findings']) > 0:
+                            answer2, usage2 = self.openai_confirm_results({'findings':answer['findings']}, headers=ignorable_headers)
+                            usage = self.add_usage(usage, usage2)
+                            answer['findings'] = [f for f in answer2['findings'] if f['words_found'] and not f['clause_from_header']]
                         create_jobresult(
                             self.topicId, self.jobId, page, answer, usage,
                             output_version="extract_v2", 
