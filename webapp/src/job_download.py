@@ -31,7 +31,7 @@ class JobResultForXlsx:
             self.source_revision = ''
             self.source_title = ''
         self.clause_address = finding.get('clause_address', '')
-        self.clause_text = finding.get('clause', '')
+        self.clause_text = finding.get('clause', '').replace('<em>','').replace('</em>','')
         self.dccl = None
         self.jc_comment = None
 
