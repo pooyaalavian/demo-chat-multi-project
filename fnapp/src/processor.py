@@ -10,7 +10,7 @@ from openai import AzureOpenAI
 
 
 class Processor:
-    def __init__(self, job, files:list, system_prompt_file_name: str) -> None:
+    def __init__(self, job, files:list) -> None:
         self.job = job
         self.files = files
 
@@ -18,9 +18,6 @@ class Processor:
         self.jobId = job["id"]
         self.jobType = job["jobType"]
 
-        self.system_prompt = open(
-            join(dirname(realpath(__file__)), "prompts", system_prompt_file_name)
-        ).read()
         self.oai_client = AzureOpenAI(
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),

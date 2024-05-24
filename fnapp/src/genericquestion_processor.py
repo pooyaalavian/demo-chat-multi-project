@@ -8,9 +8,10 @@ from src.parsers import parse_page_str, table_to_html
 GPT_MODEL = "gpt-35-turbo"
 class GenericQuestionProcessor(Processor):
     def __init__(self, job, files):
-        super().__init__(job, files, "generic_question.system.prompt")
+        super().__init__(job, files)
         
         self.question = job["question"]
+        self.system_prompt = self.read_prompt("generic_question.system.prompt")
         if 'systemPrompt' in job:
             sp:str = job['systemPrompt']
             if sp is not None and sp.strip() != "": 
