@@ -132,6 +132,10 @@ export const getAppVersion = async () => {
     return wrappedFetch<{ webapp: string; fnapp: string }>('/settings/version', { method: 'GET' });
 };
 
+export const deleteJobResultFinding = async (topicId: string, jobId: string, resultId:string, findingId:number) => {
+    return wrappedFetch<Job>(`/topics/${topicId}/jobs/${jobId}/results/${resultId}/findings/${findingId}`, { method: 'DELETE' });
+}
+
 export const downloadJobResultsXlsx = async (topicId: string, jobId: string) => {
     const response = await wrappedFetchRaw(`/topics/${topicId}/jobs/${jobId}/results.xlsx`, {
         method: 'GET',

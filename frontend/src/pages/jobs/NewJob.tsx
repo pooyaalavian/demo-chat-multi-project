@@ -29,7 +29,8 @@ export const NewJob = () => {
         const jobType = event.target.querySelector('input[name="jobtype"]:checked').value as JobType;
         const systemPrompt = event.target.querySelector('#systemprompt')?.value;
         const question = event.target.querySelector('#question').value;
-        const llm = event.target.querySelector('input[name="llm"]:checked').value;
+        // const llm = event.target.querySelector('input[name="llm"]:checked').value;
+        const llm = 'gpt-4o';
 
         const selectedFiles = files.map(f => ({
             fileId: f.id,
@@ -115,7 +116,7 @@ export const NewJob = () => {
                 }
 
 
-                <div className="flex-1 m-1 border-b shadow-gray-300 shadow-sm">
+                {/* <div className="flex-1 m-1 border-b shadow-gray-300 shadow-sm">
                     <div className="flex items-center">
                         <span className="flex-0 p-2 w-32">Model</span>
                         <div className="bg-blue-50 p-2 w-full flex-1" >
@@ -129,7 +130,7 @@ export const NewJob = () => {
                             </span>
                         </div>
                     </div>
-                </div>
+                </div> */}
 
                 <div className="flex-1 m-1 border-b shadow-gray-300 shadow-sm">
                     <div className="flex items-center">
