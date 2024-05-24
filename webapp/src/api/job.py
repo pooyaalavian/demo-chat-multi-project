@@ -87,3 +87,9 @@ async def get_job_results_xlsx(topicId: str, jobId: str):
     filename = generate_xlsx_from_job_results(_res, tmp_file_identifier)
     
     return await send_file(filename, as_attachment=True, attachment_filename=f"results-{jobId}.xlsx", cache_timeout=0)
+
+@jobs.delete("/<jobId>/results/<resultId>/findings/<findingId>")
+async def topic_delete_jobresult_finding(topicId: str, jobId: str, resultId: str, findingId: int):
+    await jobsCosmosClient.delete_finding_from_job_result(topicId, resultId, findingId)
+    return jsonify({"message": f"delete finding {findingId} from result {resultId}, job {jobId}, topic: {topicId}"})
+

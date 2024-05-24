@@ -51,6 +51,23 @@ class JobsCosmosClient(BaseClient):
             ],
             partition_key=topicId
         )
+        return results 
+    
+    async def get_job_result(self, topicId:str, resultId: str):
+        results = await self.query(
+            query=f"SELECT * FROM c WHERE c.type=@type AND c.id=@resultId",
+            params=[
+                {"name":"@type","value":"jobresult"},
+                {"name":"@resultId","value":resultId}
+            ],
+            partition_key=topicId
+        )
+        return results[0] if results else None 
+    
+    async def delete_finding_from_job_result(self, topicId:str, resultId: str, findingId: str):
+        results = await self.container_client.patch_item(resultId, topicId, [
+            {"op":"remove","path": f"/result/findings/{findingId}"}
+        ])
         return results   
     
     async def delete_job_results(self, topicId:str, jobId: str):
