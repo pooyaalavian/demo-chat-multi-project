@@ -1,11 +1,12 @@
 import { useState, SyntheticEvent } from "react";
-import { deleteJobResultFinding, fetchBlobSasToken, } from '../../../api/internal';
+import { fetchBlobSasToken, } from '../../../api/internal';
 import { JobResult, JobResultV2, JobResultV2_Finding, OnDelete, } from '../../../types/job';
 import { ReferencePopup } from "../../conversations/reference-popup";
 import { createPortal } from "react-dom";
 import { File } from '../../../types/file';
-import { DeleteIcon, PageEditIcon, ChromeCloseIcon } from '@fluentui/react-icons-mdl2';
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { ChromeCloseIcon } from '@fluentui/react-icons-mdl2';
+// import { DeleteIcon, PageEditIcon, ChromeCloseIcon } from '@fluentui/react-icons-mdl2';
+// import { LoadingSpinner } from "../../../components/LoadingSpinner";
 
 
 
@@ -52,10 +53,10 @@ const ModifyFindingPopup = ({ finding, result, onClose }: { result: JobResult<Jo
     );
 };
 
-const JobResultEl = ({ result, finding, file, isEvenRow, onDelete }: { result: JobResult<JobResultV2>; finding: JobResultV2_Finding; file?: File; isEvenRow: boolean, onDelete:OnDelete }) => {
+const JobResultEl = ({ result, finding, file, isEvenRow, }: { result: JobResult<JobResultV2>; finding: JobResultV2_Finding; file?: File; isEvenRow: boolean, onDelete: OnDelete }) => {
     const [showReference, setShowReference] = useState(false);
     const [showModify, setShowModify] = useState(false);
-    const [showDelete, setShowDelete] = useState(true);
+    // const [showDelete, setShowDelete] = useState(true);
     const [sasToken, setSasToken] = useState<string>('');
     // if(!result.result.answer || result.result.answer.length==0) return null;
 
@@ -68,20 +69,20 @@ const JobResultEl = ({ result, finding, file, isEvenRow, onDelete }: { result: J
     };
     const sanitizedClause = { __html: finding.clause };
     const evenOddClass = (isEvenRow ? 'bg-gray-50' : 'bg-white') + ' border-b border-gray-300 pb-2';
-    
-    const deleteFinding = () => {
-        const findingId = result.result.findings.indexOf(finding);
-        const jobId = result.jobId;
-        const resultId = result.id;
-        const topicId = result.topicId;
-        setShowDelete(false);
-        deleteJobResultFinding(topicId, jobId, resultId, findingId).then(() => onDelete(topicId, jobId, resultId, {findingId})).then(() => setShowDelete(true));
-    };
 
-    const updateFinding = () => {
-        console.log('deleteFinding', result, finding);
-        setShowModify(true);
-    };
+    // const deleteFinding = () => {
+    //     const findingId = result.result.findings.indexOf(finding);
+    //     const jobId = result.jobId;
+    //     const resultId = result.id;
+    //     const topicId = result.topicId;
+    //     setShowDelete(false);
+    //     deleteJobResultFinding(topicId, jobId, resultId, findingId).then(() => onDelete(topicId, jobId, resultId, {findingId})).then(() => setShowDelete(true));
+    // };
+
+    // const updateFinding = () => {
+    //     console.log('deleteFinding', result, finding);
+    //     setShowModify(true);
+    // };
     return <div className="flex flex-row items-stretch">
         <div className={"flex-0 w-12 text-center " + evenOddClass}>
             <button className="text-underline text-blue-500" onClick={showReferencePopup}>
@@ -106,7 +107,7 @@ const JobResultEl = ({ result, finding, file, isEvenRow, onDelete }: { result: J
     </div>
 }
 
-export const JobResultsRendererV2 = ({ results, files, onDelete}: { results: JobResult<JobResultV2>[]; files: File[]; onDelete: OnDelete }) => {
+export const JobResultsRendererV2 = ({ results, files, onDelete }: { results: JobResult<JobResultV2>[]; files: File[]; onDelete: OnDelete }) => {
     const sorted = results.sort((a, b) => a.page - b.page)
         .filter(result => result.result.findings && result.result.findings.length)
         .map(result => result.result.findings.map(finding => ({ finding, result })))
