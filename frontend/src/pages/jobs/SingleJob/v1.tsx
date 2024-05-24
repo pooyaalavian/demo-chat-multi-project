@@ -1,6 +1,6 @@
 import { useState, } from "react";
 import { fetchBlobSasToken, } from '../../../api/internal';
-import { JobResult, JobResultV1, } from '../../../types/job';
+import { JobResult, JobResultV1, OnDelete, } from '../../../types/job';
 import { ReferencePopup } from "../../conversations/reference-popup";
 import { createPortal } from "react-dom";
 import { File } from '../../../types/file';
@@ -32,7 +32,7 @@ const JobResultEl = ({ result, file, isEvenRow }: { result: JobResult; file?: Fi
     </div>
 }
 
-export const JobResultsRendererV1 = ({ results, files, }: { results: JobResult<JobResultV1>[]; files: File[] }) => {
+export const JobResultsRendererV1 = ({ results, files, }: { results: JobResult<JobResultV1>[]; files: File[]; onDelete:OnDelete }) => {
     const sorted = results.sort((a, b) => a.page - b.page).filter(r => r.result && r.result.answer && r.result.answer.length > 0);
 
     return <div className="flex flex-col">

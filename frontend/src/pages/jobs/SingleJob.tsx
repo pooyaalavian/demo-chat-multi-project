@@ -98,6 +98,10 @@ export const SingleJob = () => {
 
     const ResultRenderer = job?.results && job.results[0]?.output_version === 'extract_v2' ? JobResultsRendererV2 : JobResultsRendererV1; 
 
+    const onDeleteWrapper = () => {
+        setRefresh(r => r + 1);
+    };
+
     const usage = job?.results?.map(r => r.usage).reduce((acc, u) => ({
         prompt_tokens: acc.prompt_tokens + u.prompt_tokens,
         completion_tokens: acc.completion_tokens + u.completion_tokens,
@@ -115,7 +119,8 @@ export const SingleJob = () => {
                 </div>
                 <div className="flex-0 h-full text-lg p-1  bg-gray-10 border border-gray-100">
                     <span className="font-bold">Files used: </span>
-                    {job.selectedFiles.map(s => files.find(f => f.id === s.fileId)?.filename).join(', ')}
+                    {/* {job.selectedFiles.map(s => files.find(f => f.id === s.fileId)?.filename + (s.pages!='*'?` (Page(s) ${s.pages})`:'')).join(', ')} */}
+                    {job.selectedFiles.map(s => [files.find(f => f.id === s.fileId)?.filename, s.pages] ).map(x=><>{x[0]}<span className="ml-1 rounded-lg px-1 text-sm text-white bg-gray-400">Page(s): {x[1]=='*'?'all':x[1]}</span></>)}
                 </div>
                 <div className="flex-0 h-full text-lg p-1  bg-gray-100 border border-gray-100">
                     <span className="font-bold">Language model: </span>
@@ -139,7 +144,7 @@ export const SingleJob = () => {
                 </div> : null}
                 <div className="flex-0 h-full text-lg p-1  bg-gray-10 border border-gray-100">
                     <div className="font-bold">Results: </div>
-                    {job.results ? <ResultRenderer results={job.results} files={files} /> : null}
+                    {job.results ? <ResultRenderer results={job.results} files={files} onDelete={onDeleteWrapper}/> : null}
                 </div>
             </div>
             <div className="flex-0 flex flex-col h-full">

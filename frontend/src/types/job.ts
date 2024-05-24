@@ -18,7 +18,7 @@ export interface Job<T = any> {
     jobType: JobType;
     question: string;
     systemPrompt?: string;
-    llm: 'gpt-35-turbo' | 'gpt-4';
+    llm: 'gpt-35-turbo' | 'gpt-4' | 'gpt-4o';
     selectedFiles: JobFile[];
     createdAt: string;
     updatedAt: string;
@@ -38,9 +38,12 @@ export interface JobResultV2_Finding {
     clause_address: string;
     page: string;
 };
+
 export interface JobResultV2 {
     findings: JobResultV2_Finding[];
 }
+
+export type OnDelete = (topicId: string, jobId: string, resultId: string, extra_params:Record<string,any>) => void;
 
 export interface JobResult<T = any> {
     id: string;
