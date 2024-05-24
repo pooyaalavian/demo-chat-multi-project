@@ -24,8 +24,10 @@ Respond in a similar format format and add "words_found" and "clause_from_header
     ]
 }
 
-- words_found: If the "clause" contains the matched_words, set "words_found" to true. Otherwise, set it to false. Be very careful and if you don't see the words, set this flag to false.
+- words_found: If the "clause" contains the base_word or its variations, set "words_found" to true. Otherwise, set it to false. Be very careful and if you don't see the words, set this flag to false.
+If matched_words are unrelated to base_word, set words_found to false.
 - clause_from_header: If there is an indication that the clause or clause_address is from the headers, set it to true. Otherwise, set it to false.
+However, note that the context that is provided to you is one page of a multi-page document, and it is possible that the first part of the first sentence of the page was in previous page. In those cases, do not identify the finding as header.
 
 
 The input base word(s) are: "%BASE_WORD%"

@@ -9,30 +9,34 @@ GPT_MODEL = "gpt-35-turbo"
 
 class WordSearchProcessor(Processor):
     def __init__(self, job, files):
-        super().__init__(job, files, "extract_text.system.prompt")
+        super().__init__(job, files)
         self.question = job["question"]
     
     def openai_find_matches(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1, headers=[]):
         isGpt4 = model.find("4") != -1
+        model='gpt-4o'
         
         ignore_headers = ''
         if len(headers) > 0:
-            ignore_headers = '\nHere is a non-comprehensive list of document headers that you must ignore: \n'
             for header in headers:
                 ignore_headers += f'- {header}\n'
         
-        system_prompt = self.system_prompt + ignore_headers
-        user_prompt = self.question.lower()
+        system_prompt = self.read_prompt(
+            "extract_text.system.prompt", 
+            BASE_WORD=self.question.lower(), 
+            IGNORE_HEADERS=ignore_headers,
+        )
         
         response: ChatCompletion = self.oai_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt }, 
-                {"role": "user", "name":"Document", "content": context},
-                {"role": "user", "name":"User", "content": user_prompt},
+                {"role": "user", "content": context},
+                # {"role": "user", "name":"Document", "content": context},
+                # {"role": "user", "name":"User", "content": user_prompt},
             ],
             model=model,
-            max_tokens=1000,
-            temperature=0.3,
+            max_tokens=2000,
+            temperature=0,
             response_format={"type":'json_object'} if isGpt4 else None,
         )
         answer_raw = response.choices[0].message.content
@@ -70,8 +74,8 @@ class WordSearchProcessor(Processor):
                 {"role": "user", "content": user_prompt},
             ],
             model=model,
-            max_tokens=1000,
-            temperature=0.3,
+            max_tokens=2000,
+            temperature=0.2,
             response_format={"type":'json_object'} if isGpt4 else None,
         )
         answer_raw = response.choices[0].message.content
@@ -182,11 +186,16 @@ class WordSearchProcessor(Processor):
                             answer['findings'] = [f for f in answer['all_findings'] if f['confidence'] > 0.5]
                             for f in answer['findings']:
                                 del f['confidence']
-                                del f['explanation']
+                                # del f['explanation']
+                            if len(answer['findings']) < len(answer['all_findings']):
+                                logging.info(f"all: {len(answer['all_findings'])}, confident: {len(answer['findings'])}")
                         if len(answer['findings']) > 0:
-                            answer2, usage2 = self.openai_confirm_results({'findings':answer['findings']}, headers=ignorable_headers)
+                            answer2, usage2 = self.openai_confirm_results({'findings':answer['findings']}, model=self.job['llm'], headers=ignorable_headers)
                             usage = self.add_usage(usage, usage2)
-                            answer['findings'] = [f for f in answer2['findings'] if f['words_found'] and not f['clause_from_header']]
+                            f = [f for f in answer2['findings'] if f['words_found'] and not f['clause_from_header']]
+                            if len(f) < len(answer['findings']):
+                                logging.info(f"all: confirm_llm confirmed {len(f)} out of {len(answer['findings'])}")
+                            answer['findings'] = f
                         create_jobresult(
                             self.topicId, self.jobId, page, answer, usage,
                             output_version="extract_v2", 
