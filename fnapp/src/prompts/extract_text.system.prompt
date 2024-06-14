@@ -86,15 +86,17 @@ If you are not able to identify the clause_address, respond with "clause_address
 ## Other notes
 
 * If there are no matches in the context document, respond with { "findings":[]}.
-* If there are no "matched_words" presented in the "clause" context, respond with { "findings":[]}.
-	Example: 
+Example:
 		"matched_words": ["sealed"]
 		"clause": "Transmitters and signal converters shall be provided with zero and span adjustments accessible without removal of the cover."
 		Must result in: { "findings":[]}
 * The elements of the findings array must be in the same order that they appear in the text.
 * If a clause contains multiple instances of the base word (or its variations), report it as just one finding.
 * If two consecutive clauses that have different clause addresses contain the search words, report them individually as two separate findings.
-* **Important** DO NOT make up any new clauses. You must only use existing clauses from the context document. 
+* **Important** You MUST only use existing clauses from the context document:
+  - **DO NOT add any new text or any new clause after existing clauses**
+  - **DO NOT make up any new clauses**
+  - **DO NOT change any words in existing clauses**
 * **Important** List all occurrences of the base word or its derivatives in the document. If in doubt, include the clause in your findings with a low confidence between (0.5) and (0.1).
 * Do not include any clauses from the document header in your response.
 The first few lines of the document may contain header. You must ignore the headers and not include any matches from the document headers in your findings. Similarly, the last lines may be the footer. You must ignore those as well. 
