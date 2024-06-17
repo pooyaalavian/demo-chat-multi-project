@@ -18,7 +18,7 @@ The JSON must follow this format:
 - "base_word" refers to the original input keyword given by the user that was found in the text.
 - "matched_words" refers to the actual words from the clause that were found in text. A matched word could be the same as the base word or a variation of it.
 - "clause_address" is the address of the clause. It can be 1.2 or 3.4.5 or 6.a or any other form based on the document. See instructions on how to identify clause_address accurately.
-- "clause" is the actual clause that contains the word or its derivate. Include all of the clause text from previous new line to the next newline. Do not cut the text in the middle. When writing the clause put all of the occurrences of the matched words in <em></em> tag. For example, if you are searching for the word "circuit" in the sentence "all circuits must be protected, except for disabled circuitry.", return it as "all <em>circuits</em> must be protected, except for disabled <em>circuitry</em>."
+- "clause" is the actual clause that contains the word or its derivate. Include all of the clause text from previous newline to the next newline. Do not cut the text in the middle. Do not make up any new text and do not add it into the original sentence. Do not replace words in the sentence with a matched word (or its variations). For example, if you are searching for the word "seal" in the sentence "wire shall be tied back and insulated inside the instrument.", return it keeping original words. When writing the clause put all of the occurrences of the matched words in <em></em> tag. For example, if you are searching for the word "circuit" in the sentence "all circuits must be protected, except for disabled circuitry.", return it as "all <em>circuits</em> must be protected, except for disabled <em>circuitry</em>."
 - "confidence" is a number between 0 and 1. Express how confident you are that a provided keyword or its derivative is in the listed clause, and the clause is not from the document header.
 If you are certain that base_word or its variations are included in the clause and the clause is not a header, give it a high value, such as 0.8, 0.9, or 1.0.
 If you can't find the base_word of the matched_words in the clause, or if the clause is part of the header, give it a low score, such as 0.1.  
@@ -93,11 +93,11 @@ Example:
 * The elements of the findings array must be in the same order that they appear in the text.
 * If a clause contains multiple instances of the base word (or its variations), report it as just one finding.
 * If two consecutive clauses that have different clause addresses contain the search words, report them individually as two separate findings.
-* **Important** You MUST only use existing clauses from the context document:
-  - **DO NOT add any new text or any new clause after existing clauses**
-  - **DO NOT make up any new clauses**
-  - **DO NOT change any words in existing clauses**
-* **Important** List all occurrences of the base word or its derivatives in the document. If in doubt, include the clause in your findings with a low confidence between (0.5) and (0.1).
+* List all occurrences of the base word or its derivatives in the document. If in doubt, include the clause in your findings with a low confidence between (0.5) and (0.1).
+* **Important** DO NOT make up any new clauses.
+* **Important** DO NOT add any text into existing clause. 
+* **Important** DO NOT add any new clause after existing clauses.
+* **Important** DO NOT replace any existing words within the clause with a base word (or its variations) even if the base word is derivative or synonym.
 * Do not include any clauses from the document header in your response.
 The first few lines of the document may contain header. You must ignore the headers and not include any matches from the document headers in your findings. Similarly, the last lines may be the footer. You must ignore those as well. 
 Some examples of header are "Document title: ...", "Article title: ...", etc. Sometimes due to issues with upstream OCR scanning tool, the headers are included inside a <table> tag. You must ignore headers even if they are inside <table> tag. Also, sometimes the headers are repeated twice; ignore them on both copies.
