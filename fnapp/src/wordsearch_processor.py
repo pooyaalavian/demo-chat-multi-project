@@ -26,12 +26,6 @@ class WordSearchProcessor(Processor):
             BASE_WORD=self.question.lower(), 
             IGNORE_HEADERS=ignore_headers,
         )
-
-        logging.info("-- FIND MATCHES --")
-        logging.info("System:")
-        logging.info(system_prompt)
-        logging.info("User:")
-        logging.info(context)
         
         response: ChatCompletion = self.oai_client.chat.completions.create(
             messages=[
@@ -52,8 +46,7 @@ class WordSearchProcessor(Processor):
             "total_tokens": response.usage.total_tokens,
         }
         self.log_usage(usage)
-        logging.info("Result:")
-        logging.info(answer_raw)
+       
         if force_json:
             try:
                 answer = json.loads(answer_raw)
@@ -74,12 +67,6 @@ class WordSearchProcessor(Processor):
                 doc_headers += f'- {header}\n'
         system_prompt = self.read_prompt(prompt_file,BASE_WORD=self.question, DOC_HEADERS=doc_headers)
         user_prompt = json.dumps(answer, indent=2)
-        
-        logging.info("-- CONFIRM RESULTS --")
-        logging.info("System:")
-        logging.info(system_prompt)
-        logging.info("User:")
-        logging.info(user_prompt)
 
         response: ChatCompletion = self.oai_client.chat.completions.create(
             messages=[
@@ -98,8 +85,7 @@ class WordSearchProcessor(Processor):
             "total_tokens": response.usage.total_tokens,
         }
         self.log_usage(usage)
-        logging.info("Result:")
-        logging.info(answer_raw)
+
         if force_json:
             try:
                 answer = json.loads(answer_raw)
