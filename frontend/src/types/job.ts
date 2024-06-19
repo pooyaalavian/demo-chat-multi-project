@@ -45,12 +45,14 @@ export interface JobResultV2 {
 
 export type OnDelete = (topicId: string, jobId: string, resultId: string, extra_params:Record<string,any>) => void;
 
+import { File } from './file';
 export interface JobResult<T = any> {
     id: string;
     topicId: string;
     jobId: string;
     type: 'jobresult';
     result: T;
+    file: File;
     fileId: string;
     page: number;
     output_version?: 'extract_v2';

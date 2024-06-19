@@ -99,6 +99,7 @@ const JobResultEl = ({ result, finding, file, isEvenRow, }: { result: JobResult<
                 <PageEditIcon />
             </button> */}
         </div>
+        <div className={"flex-0 w-48 pr-4 " + evenOddClass} title={result.file.filename}><pre className="overflow-hidden">{result.file.filename}</pre></div>
         <div className={"flex-0 w-36 " + evenOddClass}><pre className='whitespace-pre-wrap'>{finding.clause_address}</pre></div>
         <div className={"flex-1 " + evenOddClass} dangerouslySetInnerHTML={sanitizedClause}></div>
         {showReference && file && createPortal(<ReferencePopup path={file.file + '?' + sasToken} page={result.page.toFixed(0)} onClose={() => setShowReference(false)} />, document.body)}
@@ -108,7 +109,8 @@ const JobResultEl = ({ result, finding, file, isEvenRow, }: { result: JobResult<
 }
 
 export const JobResultsRendererV2 = ({ results, files, onDelete }: { results: JobResult<JobResultV2>[]; files: File[]; onDelete: OnDelete }) => {
-    const sorted = results.sort((a, b) => a.page - b.page)
+     const sorted = results.sort((a, b) => a.page - b.page)
+        .sort((a, b) => a.file.filename.localeCompare(b.file.filename))
         .filter(result => result.result.findings && result.result.findings.length)
         .map(result => result.result.findings.map(finding => ({ finding, result })))
         .reduce((acc, val) => acc.concat(val), []);
@@ -117,6 +119,7 @@ export const JobResultsRendererV2 = ({ results, files, onDelete }: { results: Jo
         <div className="flex flex-row">
             <div className="flex-0 w-12 font-bold">Page</div>
             <div className="flex-0 w-4 font-bold"></div>
+            <div className="flex-0 w-48 pr-4 font-bold">File</div>
             <div className="flex-0 w-36 font-bold">Clause</div>
             <div className="flex-1 font-bold">Text</div>
         </div>

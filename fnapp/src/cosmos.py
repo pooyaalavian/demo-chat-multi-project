@@ -32,7 +32,7 @@ def update_job(topicId, jobId, patches):
 def create_jobresult(topicId, jobId, page, result, usage, **kwargs):
     container_client.create_item(
         {
-            "id": f"{jobId}-{page}",
+            "id": f"{jobId}-{kwargs['file']['id']}-{page}",
             "type": "jobresult",
             "topicId": topicId,
             "jobId": jobId,
