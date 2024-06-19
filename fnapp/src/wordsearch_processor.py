@@ -46,7 +46,7 @@ class WordSearchProcessor(Processor):
             "total_tokens": response.usage.total_tokens,
         }
         self.log_usage(usage)
-        logging.info(answer_raw)
+       
         if force_json:
             try:
                 answer = json.loads(answer_raw)
@@ -67,7 +67,7 @@ class WordSearchProcessor(Processor):
                 doc_headers += f'- {header}\n'
         system_prompt = self.read_prompt(prompt_file,BASE_WORD=self.question, DOC_HEADERS=doc_headers)
         user_prompt = json.dumps(answer, indent=2)
-        
+
         response: ChatCompletion = self.oai_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt }, 
@@ -85,7 +85,7 @@ class WordSearchProcessor(Processor):
             "total_tokens": response.usage.total_tokens,
         }
         self.log_usage(usage)
-        logging.info(answer_raw)
+
         if force_json:
             try:
                 answer = json.loads(answer_raw)
