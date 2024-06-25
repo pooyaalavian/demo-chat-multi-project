@@ -6,10 +6,16 @@ from openai.types.chat import ChatCompletion
 import logging
 import json 
 
+from azure.identity import ManagedIdentityCredential, get_bearer_token_provider
+
+# Initialize Managed Identity credentials
+credentials = ManagedIdentityCredential()
+token_provider = get_bearer_token_provider(credentials, "https://cognitiveservices.azure.com/.default")
+
 oai_client = AzureOpenAI(
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
     api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+    azure_ad_token_provider=token_provider #api_key=os.getenv("AZURE_OPENAI_API_KEY"),
 )
 
 class FileInfoProcessor:
@@ -17,7 +23,7 @@ class FileInfoProcessor:
         self.path_to_docintel_firstpage=path_to_docintel_firstpage.split('/files/')[1]
         self.blob_client = BlobServiceClient(
             account_url=f"https://{os.getenv('StorageAccountName')}.blob.core.windows.net", 
-            credential=os.getenv('StorageAccountKey')
+            credential=credentials #os.getenv('StorageAccountKey')
         )
         self.get_prereqs()
         return 
