@@ -189,8 +189,8 @@ class FileHandler:
         return self.log(inspect.currentframe().f_code.co_name, f"Uploaded {src_path} to {blob_path}")
 
     async def call_doc_intelligence(self):
-        sas = await self.fileClient.generate_container_sas()
-        url = f"{self.get_blob_url(self.file_blob_path)}?{sas}"
+        #sas = await self.fileClient.generate_container_sas()
+        url = f"{self.get_blob_url(self.file_blob_path)}" #?{sas}"
         numPages = await doc_intelligence_get_num_pages(url)
         DELTA = PAGES_PER_BATCH
         batch = 0

@@ -1,20 +1,25 @@
 import requests
 import time
 import os
-from azure.core.credentials import AzureKeyCredential
+#from azure.core.credentials import AzureKeyCredential
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents import SearchClient
 
 AZURE_SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
 AZURE_SEARCH_API_KEY = os.getenv("AZURE_SEARCH_API_KEY")
-search_creds = AzureKeyCredential(AZURE_SEARCH_API_KEY)
+#search_creds = AzureKeyCredential(AZURE_SEARCH_API_KEY)
 
+from azure.identity import ManagedIdentityCredential
+
+# Initialize Managed Identity credentials
+credentials = ManagedIdentityCredential()
 
 def search_rest(method, endpoint, json):
+    token = credentials.get_token("https://search.azure.com/.default")
     headers = {
         "Content-Type": "application/json",
-        "api-key": AZURE_SEARCH_API_KEY,
-    }
+        "Authorization": f"Bearer {token}"
+    } # "api-key": AZURE_SEARCH_API_KEY,
     url = f"{AZURE_SEARCH_ENDPOINT}{endpoint}?api-version=2023-11-01"
     response = requests.request(method, url, headers=headers, json=json)
     if response.ok:
@@ -24,14 +29,14 @@ def search_rest(method, endpoint, json):
 
 def get_index_client():
     index_client = SearchIndexClient(
-        endpoint=AZURE_SEARCH_ENDPOINT, credential=search_creds
+        endpoint=AZURE_SEARCH_ENDPOINT, credential=credentials #search_creds
     )
     return index_client
 
 
 def get_search_client(index_name):
     search_client = SearchClient(
-        endpoint=AZURE_SEARCH_ENDPOINT, credential=search_creds, index_name=index_name
+        endpoint=AZURE_SEARCH_ENDPOINT, index_name=index_name, credential=credentials #search_creds
     )
     return search_client
 
