@@ -7,10 +7,10 @@ from openai import AzureOpenAI
 # from src.cosmos import create_jobresult, update_job, get_job, get_setting
 # import logging
 
-from azure.identity import ManagedIdentityCredential, get_bearer_token_provider
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
-# Initialize Managed Identity credentials
-credentials = ManagedIdentityCredential()
+# Initialize credentials
+credentials = DefaultAzureCredential()
 token_provider = get_bearer_token_provider(credentials, "https://cognitiveservices.azure.com/.default")
 
 class Processor:
@@ -25,7 +25,7 @@ class Processor:
         self.oai_client = AzureOpenAI(
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
             api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-            azure_ad_token_provider=token_provider #api_key=os.getenv("AZURE_OPENAI_API_KEY")
+            azure_ad_token_provider=token_provider() #api_key=os.getenv("AZURE_OPENAI_API_KEY")
         )
         self.blob_client = BlobServiceClient(
             account_url=f"https://{os.getenv('StorageAccountName')}.blob.core.windows.net",

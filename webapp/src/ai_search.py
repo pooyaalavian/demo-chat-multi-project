@@ -6,26 +6,26 @@ from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents import SearchClient
 
 AZURE_SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
-AZURE_SEARCH_API_KEY = os.getenv("AZURE_SEARCH_API_KEY")
+#AZURE_SEARCH_API_KEY = os.getenv("AZURE_SEARCH_API_KEY")
 #search_creds = AzureKeyCredential(AZURE_SEARCH_API_KEY)
 
-from azure.identity import ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
-# Initialize Managed Identity credentials
-credentials = ManagedIdentityCredential()
+# Initialize credentials
+credentials = DefaultAzureCredential()
+token_provider = get_bearer_token_provider(credentials, "https://search.azure.com/.default")
 
 def search_rest(method, endpoint, json):
-    token = credentials.get_token("https://search.azure.com/.default")
+    token = token_provider()
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}"
     } # "api-key": AZURE_SEARCH_API_KEY,
-    url = f"{AZURE_SEARCH_ENDPOINT}{endpoint}?api-version=2023-11-01"
-    response = requests.request(method, url, headers=headers, json=json)
+    url = f"{AZURE_SEARCH_ENDPOINT}{endpoint}?api-version=2023-11-01"   
+    response = requests.request(method, url, headers=headers, json=json)  
     if response.ok:
         return True
     return response.text
-
 
 def get_index_client():
     index_client = SearchIndexClient(
@@ -43,7 +43,9 @@ def get_search_client(index_name):
 
 def create_search_index(index_name, index_client):
     print(f"Ensuring search index {index_name} exists")
-    if index_name not in index_client.list_index_names():
+    indexNames = index_client.list_index_names()
+    
+    if index_name not in indexNames:
         index = {
             "name": index_name,
             "fields": [

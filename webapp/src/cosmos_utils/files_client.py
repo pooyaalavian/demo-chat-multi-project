@@ -14,6 +14,7 @@ class TopicFilesCosmosClient(BaseClient):
         cosmos_container_name: str,
         storage_account_name: str,
         storage_account_key: str,
+        storage_account_creds: any,
         storage_container_name: str,
     ):
         super().__init__(
@@ -27,9 +28,10 @@ class TopicFilesCosmosClient(BaseClient):
         self._storage_account_name = storage_account_name
         self._storage_container_name = storage_container_name
         self._storage_account_key = (storage_account_key)
+        self._storage_account_creds = storage_account_creds
         self._blob_service_client = BlobServiceClient(
             account_url=f"https://{self._storage_account_name}.blob.core.windows.net", 
-            credential=self._storage_account_key
+            credential=self._storage_account_creds
         )
     
     async def get_file(self, topicId:str, file_name: str):

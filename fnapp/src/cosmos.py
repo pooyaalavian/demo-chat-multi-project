@@ -1,9 +1,9 @@
 import os 
 from azure.cosmos import CosmosClient
-from azure.identity import ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential
 
-# Initialize Managed Identity credentials
-credentials = ManagedIdentityCredential()
+# Initialize credentials
+credentials = DefaultAzureCredential()
 
 cosmosdb_client: CosmosClient = CosmosClient(
     os.getenv('CosmosDbEndpoint'), 

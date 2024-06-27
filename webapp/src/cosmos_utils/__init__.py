@@ -13,22 +13,22 @@ COLLECTION_USERS = os.getenv("AZURE_COSMOSDB_COLLECTION_USERS")
 COLLECTION_TOPICS = os.getenv("AZURE_COSMOSDB_COLLECTION_TOPICS")
 COLLECTION_SETTINGS = os.getenv("AZURE_COSMOSDB_COLLECTION_SETTINGS")
 STORAGE_ACCOUNT = os.getenv("AZURE_STORAGE_ACCOUNT")
-#STORAGE_KEY = os.getenv("AZURE_STORAGE_KEY")
+STORAGE_KEY = os.getenv("AZURE_STORAGE_KEY")
 STORAGE_CONTAINER = os.getenv("AZURE_STORAGE_CONTAINER")
 SERVICE_BUS_CONNECTION_STRING = os.getenv("AZURE_SERVICE_BUS_CONNECTION_STRING") 
 SERVICE_BUS_QUEUE_NAME = os.getenv("AZURE_SERVICE_BUS_QUEUE_NAME")
 
-from azure.identity import ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential
 
 # Initialize Managed Identity credentials
-credentials = ManagedIdentityCredential()
+credentials = DefaultAzureCredential()
 
 usersCosmosClient = UsersCosmosClient(ENDPOINT,credentials,DATABASE, COLLECTION_USERS)
 topicsCosmosClient = TopicsCosmosClient(ENDPOINT,credentials,DATABASE, COLLECTION_TOPICS,userClient=usersCosmosClient)
 conversationsCosmosClient = ConversationCosmosClient(ENDPOINT,credentials,DATABASE, COLLECTION_TOPICS)
 filesCosmosClient = TopicFilesCosmosClient(
     ENDPOINT,credentials,DATABASE, COLLECTION_TOPICS,
-    STORAGE_ACCOUNT,credentials,STORAGE_CONTAINER,
+    STORAGE_ACCOUNT,STORAGE_KEY,credentials,STORAGE_CONTAINER,
 )
 jobsCosmosClient = JobsCosmosClient(ENDPOINT,credentials,DATABASE, COLLECTION_TOPICS, SERVICE_BUS_CONNECTION_STRING, SERVICE_BUS_QUEUE_NAME)
 settingsCosmosClient = BaseClient(ENDPOINT,credentials,DATABASE, COLLECTION_SETTINGS)

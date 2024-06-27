@@ -6,16 +6,16 @@ from openai.types.chat import ChatCompletion
 import logging
 import json 
 
-from azure.identity import ManagedIdentityCredential, get_bearer_token_provider
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
-# Initialize Managed Identity credentials
-credentials = ManagedIdentityCredential()
+# Initialize credentials
+credentials = DefaultAzureCredential()
 token_provider = get_bearer_token_provider(credentials, "https://cognitiveservices.azure.com/.default")
 
 oai_client = AzureOpenAI(
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
     api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-    azure_ad_token_provider=token_provider #api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+    azure_ad_token_provider=token_provider() #api_key=os.getenv("AZURE_OPENAI_API_KEY"),
 )
 
 class FileInfoProcessor:
