@@ -28,7 +28,7 @@ def handle_job(topicId, jobId):
 @app.service_bus_queue_trigger(
     arg_name="azservicebus", 
     queue_name="long_questions", 
-    connection="ServiceBusConnStr", 
+    connection="ServiceBusConnection", 
     is_sessions_enabled=True
 ) 
 def long_message_handler(azservicebus: func.ServiceBusMessage):
@@ -42,7 +42,7 @@ def long_message_handler(azservicebus: func.ServiceBusMessage):
 @app.service_bus_queue_trigger(
     arg_name="azservicebus", 
     queue_name="file_uploads",
-    connection="ServiceBusConnStr", 
+    connection="ServiceBusConnection", 
     is_sessions_enabled=True
 ) 
 def file_upload_handler(azservicebus: func.ServiceBusMessage):
