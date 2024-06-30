@@ -5,6 +5,7 @@ import requests
 import json
 from cryptography.hazmat.primitives import serialization
 from logging import getLogger
+from src.keyvault import get_secret_from_keyvault
 
 logger = getLogger(__name__)
 
@@ -14,7 +15,7 @@ payload = None
 async def getKey(kid: str):
     global payload
     if payload is None:
-        keys_url = f"https://login.microsoftonline.com/{os.getenv('ENTRA_TENANT_ID')}/discovery/v2.0/keys"
+        keys_url = f"https://login.microsoftonline.com/{get_secret_from_keyvault(os.getenv('ENTRA_TENANT_ID'))}/discovery/v2.0/keys"
         payload = requests.get(keys_url).json()
 
     for key in payload["keys"]:

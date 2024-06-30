@@ -14,6 +14,7 @@ pyjwt
 
 aiohttp
 azure-identity
+azure.keyvault
 azure-cosmos
 azure-storage-blob
 azure-cosmosdb-table
