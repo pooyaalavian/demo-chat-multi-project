@@ -35,7 +35,7 @@ async def extractUser(token: str):
         kid = hdr["kid"]
         key, _ = await getKey(kid)
         decoded = decode(
-            token, key, algorithms=[alg], audience=os.getenv("ENTRA_CLIENT_ID")
+            token, key, algorithms=[alg], audience=get_secret_from_keyvault(os.getenv("ENTRA_CLIENT_ID"))
         )
         user = {
             "firstName": decoded["given_name"],
