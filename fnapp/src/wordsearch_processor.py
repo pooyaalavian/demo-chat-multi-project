@@ -35,7 +35,7 @@ class WordSearchProcessor(Processor):
                 # {"role": "user", "name":"User", "content": user_prompt},
             ],
             model=model,
-            max_tokens=2000,
+            max_tokens=4096,
             temperature=0,
             response_format={"type":'json_object'} if isGpt4 else None,
         )
@@ -74,7 +74,7 @@ class WordSearchProcessor(Processor):
                 {"role": "user", "content": user_prompt},
             ],
             model=model,
-            max_tokens=2000,
+            max_tokens=4096,
             temperature=0.2,
             response_format={"type":'json_object'} if isGpt4 else None,
         )
