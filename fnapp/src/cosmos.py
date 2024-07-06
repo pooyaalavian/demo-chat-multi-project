@@ -1,9 +1,13 @@
 import os 
 from azure.cosmos import CosmosClient
+from azure.identity import DefaultAzureCredential
+
+# Initialize credentials
+credentials = DefaultAzureCredential()
 
 cosmosdb_client: CosmosClient = CosmosClient(
     os.getenv('CosmosDbEndpoint'), 
-    credential=os.getenv('CosmosDbApiKey')
+    credential=credentials #os.getenv('CosmosDbApiKey')
 )
 container_client = (
     cosmosdb_client

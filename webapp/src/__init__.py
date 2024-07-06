@@ -5,6 +5,7 @@ from quart import Quart, request, send_from_directory, render_template, send_fil
 # from quart_schema import QuartSchema, validate_request, validate_response
 from quart_cors import cors
 from src.cosmos_utils import usersCosmosClient, settingsCosmosClient
+from src.keyvault import get_secret_from_keyvault
 import os 
 import requests
 from datetime import datetime, timedelta
@@ -20,8 +21,8 @@ async def render_index():
         title=APP_TITLE, 
         favicon="/vite.svg",
         serverVersion=__version__,
-        clientId=os.getenv("ENTRA_CLIENT_ID"),
-        tenantId=os.getenv("ENTRA_TENANT_ID"),    
+        clientId=get_secret_from_keyvault(os.getenv("ENTRA_CLIENT_ID")),
+        tenantId=get_secret_from_keyvault(os.getenv("ENTRA_TENANT_ID")) 
     )
 
 @app.route("/")

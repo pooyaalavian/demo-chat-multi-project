@@ -137,12 +137,10 @@ class FileHandler:
             if bypass<2: await self.call_doc_intelligence()
             if bypass<2: await self.upload_doc_to_blob(self.doc_intel_local_path, self.doc_intel_blob_path)
             if bypass<2: await self.extract_file_metadata()
-            # if bypass<2: await self.update_cosmos_object(doc_intel=f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.doc_intel_blob_path}")
-            
+            # if bypass<2: await self.update_cosmos_object(doc_intel=f"https://{self.fileClient._storage_account_name}.blob.core.windows.net/{self.fileClient._storage_container_name}/{self.doc_intel_blob_path}")      
             if bypass<3: await self.perform_chunking()
             if bypass<3: await self.perform_embedding()
-            # if bypass<3: await self.save_chunks_locally()
-            
+            # if bypass<3: await self.save_chunks_locally()    
             if bypass<4: await self.postprocess_chunks()
             if bypass<4: await self.upload_to_ai_search()
             
@@ -190,8 +188,8 @@ class FileHandler:
 
     async def call_doc_intelligence(self):
         sas = await self.fileClient.generate_container_sas()
-        url = f"{self.get_blob_url(self.file_blob_path)}?{sas}"
-        numPages = await doc_intelligence_get_num_pages(url)
+        url = f"{self.get_blob_url(self.file_blob_path)}?{sas}"     
+        numPages = await doc_intelligence_get_num_pages(url) 
         DELTA = PAGES_PER_BATCH
         batch = 0
         min_page = 1

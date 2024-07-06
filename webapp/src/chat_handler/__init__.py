@@ -8,10 +8,16 @@ from src.ai_search import search_vector, search_semantic, search_hybrid , get_in
 from src.embedding import get_content_embedding
 from .messages import UserMessage, SystemMessage, SourceMessage, AssistantMessage, message_maker
 
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+# Initialize credentials
+credentials = DefaultAzureCredential()
+token_provider = get_bearer_token_provider(credentials, "https://cognitiveservices.azure.com/.default")
+
 oai_client = AsyncAzureOpenAI(
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
     api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+    azure_ad_token_provider=token_provider #api_key=os.getenv("AZURE_OPENAI_API_KEY"),
 )
 CHAT_MODEL = os.getenv("AZURE_OPENAI_CHAT_MODEL")
 EMBEDDING_MODEL = os.getenv("AZURE_OPENAI_EMBEDDING_MODEL")

@@ -1,44 +1,51 @@
 import requests
 import time
 import os
-from azure.core.credentials import AzureKeyCredential
+#from azure.core.credentials import AzureKeyCredential
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents import SearchClient
 
 AZURE_SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
-AZURE_SEARCH_API_KEY = os.getenv("AZURE_SEARCH_API_KEY")
-search_creds = AzureKeyCredential(AZURE_SEARCH_API_KEY)
+#AZURE_SEARCH_API_KEY = os.getenv("AZURE_SEARCH_API_KEY")
+#search_creds = AzureKeyCredential(AZURE_SEARCH_API_KEY)
 
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+# Initialize credentials
+credentials = DefaultAzureCredential()
+token_provider = get_bearer_token_provider(credentials, "https://search.azure.com/.default")
 
 def search_rest(method, endpoint, json):
+    token = token_provider()
     headers = {
         "Content-Type": "application/json",
-        "api-key": AZURE_SEARCH_API_KEY,
-    }
-    url = f"{AZURE_SEARCH_ENDPOINT}{endpoint}?api-version=2023-11-01"
-    response = requests.request(method, url, headers=headers, json=json)
+        "Authorization": f"Bearer {token}"
+    } # "api-key": AZURE_SEARCH_API_KEY,
+    url = f"{AZURE_SEARCH_ENDPOINT}{endpoint}?api-version=2023-11-01"   
+    response = requests.request(method, url, headers=headers, json=json)  
     if response.ok:
         return True
     return response.text
 
-
 def get_index_client():
     index_client = SearchIndexClient(
-        endpoint=AZURE_SEARCH_ENDPOINT, credential=search_creds
+        endpoint=AZURE_SEARCH_ENDPOINT, credential=credentials #search_creds
     )
     return index_client
 
 
 def get_search_client(index_name):
     search_client = SearchClient(
-        endpoint=AZURE_SEARCH_ENDPOINT, credential=search_creds, index_name=index_name
+        endpoint=AZURE_SEARCH_ENDPOINT, index_name=index_name, credential=credentials #search_creds
     )
     return search_client
 
 
 def create_search_index(index_name, index_client):
     print(f"Ensuring search index {index_name} exists")
-    if index_name not in index_client.list_index_names():
+    indexNames = index_client.list_index_names()
+    
+    if index_name not in indexNames:
         index = {
             "name": index_name,
             "fields": [
