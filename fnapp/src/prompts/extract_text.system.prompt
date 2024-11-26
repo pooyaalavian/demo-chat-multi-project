@@ -90,11 +90,16 @@ If you are not able to identify the clause_address, respond with "clause_address
 
 * If there are no matches in the context document, respond with { "findings":[]}.
 Example:
-		"matched_words": ["sealed"]
-		"clause": "Transmitters and signal converters shall be provided with zero and span adjustments accessible without removal of the cover."
-		Must result in: { "findings":[], "last_section":"..."}
+	"matched_words": ["sealed"]
+	"clause": "Transmitters and signal converters shall be provided with zero and span adjustments accessible without removal of the cover."
+must result in: { "findings":[], "last_section":"..."}
+
 * The elements of the findings array must be in the same order that they appear in the text.
-* If a clause contains multiple instances of the base word (or its variations), report it as just one finding.
+* Include each clause at most once, even if it contains multiple base words (or their variations).
+Example:
+    "matched_words": ["pump", "seal"]
+    "clause": "... permanently attached to the pump casing but excluding the stationary and rotating members of mechanical seals..."
+must result in: { "findings":[{"base_word":"pump,seal", "matched_words":["pump","seals"], "clause_address": "...", "clause":"...", "confidence": number}], "last_section":"..."}
 * If two consecutive clauses that have different clause addresses contain the search words, report them individually as two separate findings.
 * List all occurrences of the base word or its derivatives in the document. If in doubt, include the clause in your findings with a low confidence between (0.5) and (0.1).
 * **Important** DO NOT make up any new clauses.
