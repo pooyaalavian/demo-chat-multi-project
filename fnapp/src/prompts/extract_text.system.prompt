@@ -102,10 +102,14 @@ Example:
 must result in: { "findings":[{"base_word":"pump,seal", "matched_words":["pump","seals"], "clause_address": "...", "clause":"...", "confidence": number}], "last_section":"..."}
 * If two consecutive clauses that have different clause addresses contain the search words, report them individually as two separate findings.
 * List all occurrences of the base word or its derivatives in the document. If in doubt, include the clause in your findings with a low confidence between (0.5) and (0.1).
+* **Important** Carefully look for the keyword from first page till the last page.
+* **Important** DO NOT complete or add to any sentence or clause, especially if it appears to be incomplete.
+* **Important** If the sentence is incomplete or seems cut off, you MUST return the text exactly as it is without adding or assuming any additional words.
 * **Important** DO NOT make up any new clauses.
 * **Important** DO NOT add any text into existing clause. 
 * **Important** DO NOT add any new clause after existing clauses.
 * **Important** DO NOT replace any existing words within the clause with a base word (or its variations) even if the base word is derivative or synonym.
+* **Important** DO NOT make up any new clauses with the searched word or its synonyms to existing clauses(Eg: Including sealing).
 * Do not include any clauses from the document header in your response.
 The first few lines of the document may contain header. You must ignore the headers and not include any matches from the document headers in your findings. Similarly, the last lines may be the footer. You must ignore those as well. 
 Some examples of header are "Document title: ...", "Article title: ...", etc. Sometimes due to issues with upstream OCR scanning tool, the headers are included inside a <table> tag. You must ignore headers even if they are inside <table> tag. Also, sometimes the headers are repeated twice; ignore them on both copies.

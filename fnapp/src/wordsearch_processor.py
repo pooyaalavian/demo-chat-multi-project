@@ -200,7 +200,7 @@ class WordSearchProcessor(Processor):
                         if len(answer['findings']) > 0:
                             answer2, usage2 = self.openai_confirm_results({'findings':answer['findings']}, model=self.job['llm'], headers=ignorable_headers)
                             usage = self.add_usage(usage, usage2)
-                            f = [f for f in answer2['findings'] if f['words_found'] and not f['clause_from_header']]
+                            f = [f for f in answer2['findings'] if f['words_found']]
                             if len(f) < len(answer['findings']):
                                 logging.info(f"all: confirm_llm confirmed {len(f)} out of {len(answer['findings'])}")
                             answer['findings'] = f
