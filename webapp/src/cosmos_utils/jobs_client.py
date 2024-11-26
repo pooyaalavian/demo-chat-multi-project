@@ -1,9 +1,12 @@
 from dataclasses import dataclass
 from .base import BaseClient
 from typing import Literal
-import json 
+import json
 from azure.servicebus.aio import ServiceBusClient
 from azure.servicebus import ServiceBusMessage
+
+from azure.identity.aio import DefaultAzureCredential
+
 
 @dataclass
 class Job:
@@ -19,7 +22,7 @@ class JobsCosmosClient(BaseClient):
         credential: any,
         database_name: str, 
         container_name :str,
-        SERVICE_BUS_CONNECTION_STRING: str,
+        SERVICE_BUS_NAMESPACE: str,
         SERVICE_BUS_QUEUE_NAME: str,
     ):
         super().__init__(
@@ -30,17 +33,32 @@ class JobsCosmosClient(BaseClient):
             type="job",
             partition_key="topicId",
         )
-        self.SERVICE_BUS_CONNECTION_STRING = SERVICE_BUS_CONNECTION_STRING
+        self.SERVICE_BUS_NAMESPACE = SERVICE_BUS_NAMESPACE
         self.SERVICE_BUS_QUEUE_NAME = SERVICE_BUS_QUEUE_NAME
 
 
     async def submit_to_service_bus(self, topicId: str, jobId: str):
-        sb_client = ServiceBusClient.from_connection_string(conn_str=self.SERVICE_BUS_CONNECTION_STRING,logging_enable=True)
-        sb_sender = sb_client.get_queue_sender(queue_name=self.SERVICE_BUS_QUEUE_NAME)
-        payload = json.dumps({"topicId": topicId, "jobId": jobId})
-        async with sb_sender as sender:
-            message = ServiceBusMessage(payload, session_id="1")
-            await sender.send_messages(message)
+        # Initialize Managed Identity credentials
+        credentials = DefaultAzureCredential()
+
+        #sb_client = ServiceBusClient.from_connection_string(conn_str=self.SERVICE_BUS_CONNECTION_STRING,logging_enable=True)
+        sb_client = ServiceBusClient(
+            fully_qualified_namespace=self.SERVICE_BUS_NAMESPACE,
+            credential=credentials,
+            logging_enable=True
+        )
+
+        async with sb_client:
+            sb_sender = sb_client.get_queue_sender(queue_name=self.SERVICE_BUS_QUEUE_NAME)
+            
+            payload = json.dumps({"topicId": topicId, "jobId": jobId})
+            
+            #with sb_sender as sender:
+            async with sb_sender:
+                message = ServiceBusMessage(payload, session_id="1")
+                await sb_sender.send_messages(message)
+
+        await credentials.close()
     
     async def get_job_results(self, topicId:str, jobId: str):
         results = await self.query(

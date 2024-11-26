@@ -1,10 +1,23 @@
 import { LogLevel, Configuration, AuthenticationResult, EventType, PublicClientApplication, SilentRequest } from '@azure/msal-browser';
+import { getSecretFromKeyVault } from './keyvault';
 
 function parseClientInfo() {
+    let keyVaultURL: string = import.meta.env.VITE_AZURE_KEYVAULT_ENDPOINT;
+    let entraClientId: string = import.meta.env.VITE_ENTRA_CLIENT_ID;
+    let entraTenantId: string = import.meta.env.VITE_ENTRA_TENANT_ID;
+
+    getSecretFromKeyVault(keyVaultURL, entraClientId)
+        .then((value) => entraClientId = <string>value)
+        .catch((e) => console.log(`Error retrieving secret: ${e.message}`));
+
+    getSecretFromKeyVault(keyVaultURL, entraTenantId)
+        .then((value) => entraTenantId = <string>value)
+        .catch((e) => console.log(`Error retrieving secret: ${e.message}`));
+
     let clientId: string = (window as any).CLIENT_ID;
     let tenantId: string = (window as any).TENANT_ID;
-    if (clientId.startsWith('{{')) clientId = import.meta.env.VITE_ENTRA_CLIENT_ID;
-    if (tenantId.startsWith('{{')) tenantId = import.meta.env.VITE_ENTRA_TENANT_ID;
+    if (clientId.startsWith('{{')) clientId = entraClientId;
+    if (tenantId.startsWith('{{')) tenantId = entraTenantId;
     return { clientId, tenantId };
 }
 const { clientId, tenantId } = parseClientInfo();

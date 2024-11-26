@@ -1,9 +1,13 @@
 import os 
 from azure.cosmos import CosmosClient
+from azure.identity import DefaultAzureCredential
+
+# Initialize credentials
+credentials = DefaultAzureCredential()
 
 cosmosdb_client: CosmosClient = CosmosClient(
     os.getenv('CosmosDbEndpoint'), 
-    credential=os.getenv('CosmosDbApiKey')
+    credential=credentials #os.getenv('CosmosDbApiKey')
 )
 container_client = (
     cosmosdb_client
@@ -32,7 +36,7 @@ def update_job(topicId, jobId, patches):
 def create_jobresult(topicId, jobId, page, result, usage, **kwargs):
     container_client.create_item(
         {
-            "id": f"{jobId}-{page}",
+            "id": f"{jobId}-{kwargs['file']['id']}-{page}",
             "type": "jobresult",
             "topicId": topicId,
             "jobId": jobId,

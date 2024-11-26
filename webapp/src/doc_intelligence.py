@@ -1,15 +1,20 @@
 import os
-from azure.core.credentials import AzureKeyCredential
+from azure.core.credentials import AzureKeyCredential, TokenCredential
 from azure.core.exceptions import HttpResponseError
 from azure.ai.formrecognizer import DocumentAnalysisClient, AnalyzeResult
 import asyncio
 
 endpoint = os.getenv("AZURE_DOC_INTELLIGENCE_ENDPOINT")
-key = os.getenv("AZURE_DOC_INTELLIGENCE_API_KEY")
+#key = os.getenv("AZURE_DOC_INTELLIGENCE_API_KEY")
 TRANSACTION_PER_SECOND = 10
 
+from azure.identity import DefaultAzureCredential
+
+# Initialize credentials
+credentials = DefaultAzureCredential()
+
 document_analysis_client = DocumentAnalysisClient(
-    endpoint=endpoint, credential=AzureKeyCredential(key)
+    endpoint=endpoint, credential=credentials #AzureKeyCredential(key)
 )
 
 

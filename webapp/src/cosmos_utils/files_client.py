@@ -13,7 +13,7 @@ class TopicFilesCosmosClient(BaseClient):
         database_name: str,
         cosmos_container_name: str,
         storage_account_name: str,
-        storage_account_key: str,
+        storage_account_creds: any, #storage_account_key: str,
         storage_container_name: str,
     ):
         super().__init__(
@@ -26,10 +26,10 @@ class TopicFilesCosmosClient(BaseClient):
         )
         self._storage_account_name = storage_account_name
         self._storage_container_name = storage_container_name
-        self._storage_account_key = (storage_account_key)
+        self._storage_account_creds = storage_account_creds #self._storage_account_key = (storage_account_key)
         self._blob_service_client = BlobServiceClient(
             account_url=f"https://{self._storage_account_name}.blob.core.windows.net", 
-            credential=self._storage_account_key
+            credential=self._storage_account_creds
         )
     
     async def get_file(self, topicId:str, file_name: str):
@@ -66,11 +66,15 @@ class TopicFilesCosmosClient(BaseClient):
     
     
     async def generate_blob_sas(self, blob_name: str)->str:
+        user_delegation_key = await self._blob_service_client.get_user_delegation_key(
+            datetime.now(UTC) - timedelta(minutes=1), 
+            datetime.now(UTC) + timedelta(hours=1)
+        )
         token = generate_blob_sas(
             account_name=self._storage_account_name,
             container_name=self._storage_container_name,
             blob_name=blob_name,
-            account_key=self._storage_account_key,
+            user_delegation_key= user_delegation_key, # account_key=self._storage_account_key,
             permission="r",
             expiry=datetime.now(UTC) + timedelta(hours=1),
             start=datetime.now(UTC) - timedelta(minutes=1)
@@ -78,10 +82,14 @@ class TopicFilesCosmosClient(BaseClient):
         return token
     
     async def generate_container_sas(self)->str:
+        user_delegation_key = await self._blob_service_client.get_user_delegation_key(
+            datetime.now(UTC) - timedelta(minutes=1), 
+            datetime.now(UTC) + timedelta(hours=1)
+        )
         token = generate_container_sas(
             account_name=self._storage_account_name,
             container_name=self._storage_container_name,
-            account_key=self._storage_account_key,
+            user_delegation_key= user_delegation_key, #account_key=self._storage_account_key,
             permission="r",
             expiry=datetime.now(UTC) + timedelta(hours=4),
             start=datetime.now(UTC) - timedelta(minutes=1)
