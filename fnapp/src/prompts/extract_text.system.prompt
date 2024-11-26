@@ -12,7 +12,8 @@ The JSON must follow this format:
     "findings":[
         {"base_word":"...", "matched_words":["..."], "clause_address": "...", "clause":"...", "confidence": number },
         ...
-    ]
+    ],
+    "last_section":"..."// last section described in this document
 }
 
 - "base_word" refers to the original input keyword given by the user that was found in the text.
@@ -22,6 +23,8 @@ The JSON must follow this format:
 - "confidence" is a number between 0 and 1. Express how confident you are that a provided keyword or its derivative is in the listed clause, and the clause is not from the document header.
 If you are certain that base_word or its variations are included in the clause and the clause is not a header, give it a high value, such as 0.8, 0.9, or 1.0.
 If you can't find the base_word of the matched_words in the clause, or if the clause is part of the header, give it a low score, such as 0.1.  
+
+- "last_section": Please return the last section you read in the text so that we can infer the context when we process the next page.
 
 ## Instructions on how to find the clause_address
 
@@ -75,13 +78,13 @@ If clause is part of a parent section, include the parent clause address. For ex
 a) Irrelevant text 
 b) Relevant text 
 """
-Return the clause address as 4.5.b.
+Return the clause address as 4.5.b. And "last_section" as "4.5.b"
 
 Sometimes the clause_address is a reference to another documentation. In such cases, mention the cited documentation code.
 
-Since you are looking at only one page of the document it is possible that the beginning of a sentence was in previous page and you see the middle of the sentence. In these cases, respond with "?".
+%last_section_clause%
 
-If you are not able to identify the clause_address, respond with "clause_address": "?" .
+If you are not able to identify the clause_address, respond with "clause_address": "?".
 
 ## Other notes
 
@@ -89,7 +92,7 @@ If you are not able to identify the clause_address, respond with "clause_address
 Example:
 		"matched_words": ["sealed"]
 		"clause": "Transmitters and signal converters shall be provided with zero and span adjustments accessible without removal of the cover."
-		Must result in: { "findings":[]}
+		Must result in: { "findings":[], "last_section":"..."}
 * The elements of the findings array must be in the same order that they appear in the text.
 * If a clause contains multiple instances of the base word (or its variations), report it as just one finding.
 * If two consecutive clauses that have different clause addresses contain the search words, report them individually as two separate findings.

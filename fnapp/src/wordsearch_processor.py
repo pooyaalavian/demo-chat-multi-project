@@ -12,7 +12,7 @@ class WordSearchProcessor(Processor):
         super().__init__(job, files)
         self.question = job["question"]
     
-    def openai_find_matches(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1, headers=[]):
+    def openai_find_matches(self, context, *, model=GPT_MODEL, force_json=True, retry_count=1, headers=[], last_page_last_section=None):
         isGpt4 = model.find("4") != -1
         model='gpt-4o'
         
@@ -21,10 +21,15 @@ class WordSearchProcessor(Processor):
             for header in headers:
                 ignore_headers += f'- {header}\n'
         
+        last_section_clause = ''
+        if last_page_last_section is not None:
+            last_section_clause = f'Since you are looking at only one page of the document, it is possible that the beginning of a sentence was in the previous page and the text starts from the middle of the sentence. In this case, use "{last_page_last_section}" for clause_address. Also, if there are no other clauses starting in this page (meaning that this clause was so long that is started in the previous page and will continue to the next pages), you can use "{last_page_last_section}" for "last_section". '
+        
         system_prompt = self.read_prompt(
             "extract_text.system.prompt", 
             BASE_WORD=self.question.lower(), 
             IGNORE_HEADERS=ignore_headers,
+            last_section_clause=last_section_clause,
         )
         
         response: ChatCompletion = self.oai_client.chat.completions.create(
@@ -177,10 +182,11 @@ class WordSearchProcessor(Processor):
                     payload = json.loads(data.decode('utf-8'))
                     
                     pages = self.get_pages(file, payload)
+                    last_page_last_section = None
                     for page in pages:
                         text = self.get_text_for_page(payload, page)
                         context = self.prepare_text_for_llm(text, ignorable_headers=ignorable_headers)
-                        answer, usage = self.openai_find_matches(context, model=self.job['llm'], headers=ignorable_headers)
+                        answer, usage = self.openai_find_matches(context, model=self.job['llm'], headers=ignorable_headers, last_page_last_section=last_page_last_section)
                         if 'findings' in answer and  len(answer['findings'])>0:
                             answer['all_findings'] = answer['findings']
                             answer['findings'] = [f for f in answer['all_findings'] if f['confidence'] > 0.5]
@@ -189,6 +195,8 @@ class WordSearchProcessor(Processor):
                                 # del f['explanation']
                             if len(answer['findings']) < len(answer['all_findings']):
                                 logging.info(f"all: {len(answer['all_findings'])}, confident: {len(answer['findings'])}")
+                        if 'last_section' in answer:
+                            last_page_last_section = answer['last_section']
                         if len(answer['findings']) > 0:
                             answer2, usage2 = self.openai_confirm_results({'findings':answer['findings']}, model=self.job['llm'], headers=ignorable_headers)
                             usage = self.add_usage(usage, usage2)
